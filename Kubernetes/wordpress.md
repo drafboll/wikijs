@@ -2,7 +2,7 @@
 title: Configuration d'un wordpress
 description: 
 published: 1
-date: 2026-09-24T18:25:11.868Z
+date: 2026-09-25T17:04:16.393Z
 tags: 
 editor: markdown
 dateCreated: 2025-05-07T21:16:09.364Z
@@ -16,7 +16,7 @@ Ce guide reprend toutes les étapes que nous avons réalisées pour déployer Wo
 * **Caddy** en front-end reverse‐proxy TLS
 
 > Vous trouverez ci‑dessous la procédure complète, pas à pas, en Markdown.
-
+![capture_d'écran_2025-10-10_195609.png](/docker/capture_d'écran_2025-10-10_195609.png)
 ---
 
 ## 1. Prérequis
