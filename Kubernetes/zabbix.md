@@ -2,7 +2,7 @@
 title: Installer Zabbix sur kubernetes
 description: 
 published: 1
-date: 2026-09-24T18:26:35.572Z
+date: 2026-11-01T21:38:32.167Z
 tags: kubernetes, zabbix
 editor: markdown
 dateCreated: 2025-05-05T14:30:22.779Z
@@ -138,16 +138,16 @@ sudo caddy reload --config /etc/caddy/Caddyfile
 
 - Accéder à l’interface web : http://zabbix.alpha-pro.fr
 - Identifiants par défaut :
-  - 🧑 Utilisateur : `Admin`
-  - 🔐 Mot de passe : `zabbix`
+  - Utilisateur : `Admin`
+  - Mot de passe : `zabbix`
 
 ---
 
 ## Conseils & Remarques
 
-- 🔁 Tu peux changer `30777` si tu as un conflit avec un autre service NodePort.
-- 🧱 Tu peux ajouter des règles de firewall sur le serveur Caddy si nécessaire.
-- 🔐 Pour activer HTTPS avec Caddy, il suffit d’utiliser ton domaine et laisser Caddy gérer le certificat (via Let's Encrypt).
+- Tu peux changer `30777` si tu as un conflit avec un autre service NodePort.
+- Tu peux ajouter des règles de firewall sur le serveur Caddy si nécessaire.
+- Pour activer HTTPS avec Caddy, il suffit d’utiliser ton domaine et laisser Caddy gérer le certificat (via Let's Encrypt).
 
 ---
 
