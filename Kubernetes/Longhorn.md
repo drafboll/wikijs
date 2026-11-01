@@ -2,7 +2,7 @@
 title: Longhorn
 description: 
 published: 1
-date: 2026-09-25T15:40:55.104Z
+date: 2026-11-01T21:38:52.277Z
 tags: kubernetes, longhorn
 editor: markdown
 dateCreated: 2025-05-02T07:45:05.900Z
@@ -145,7 +145,7 @@ http://192.168.60.10
 
 ---
 
-## 📄 Notes Complémentaires
+## Notes Complémentaires
 
 * Assurez-vous que le firewall sur la machine Caddy permet le port 80 :
 
