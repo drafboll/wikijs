@@ -2,7 +2,7 @@
 title: Configurer la synchronisation Git (GitHub) avec Wiki.js sous Docker
 description: 
 published: 1
-date: 2026-09-25T17:51:47.531Z
+date: 2026-11-04T22:21:21.501Z
 tags: 
 editor: markdown
 dateCreated: 2026-09-25T17:51:47.531Z
@@ -131,6 +131,11 @@ Dans un environnement Docker, l'utilisateur restreint de Wiki.js (ex: `node` ou 
    ```bash
    git config --system --add safe.directory '/app/wiki/data/repo'
    ```
+   Si ca ne marche pas faire : 
+   ```bash
+   docker exec -u root cce2dfe71495 git config --system --add safe.directory '/app/wiki/data/repo'
+   ```
+ 
 6. Quittez le conteneur (`exit`).
 
 ---
