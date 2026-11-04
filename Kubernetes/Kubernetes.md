@@ -2,7 +2,7 @@
 title: Installation d'un Cluster Kubernetes
 description: 
 published: 1
-date: 2026-09-24T18:25:24.302Z
+date: 2026-11-04T22:21:59.943Z
 tags: cluster, debian, k8s, kubernetes, rocky
 editor: markdown
 dateCreated: 2025-03-15T12:47:04.468Z
@@ -144,6 +144,10 @@ Cilium est une solution **CNI (Container Network Interface)** basée sur **eBPF*
 - **Optimisation du load balancing** intégré au noyau Linux.
 - **Alternative à kube-proxy**, réduisant la latence réseau.
 
+Le CNI attribue les adresses IP et connecte les Pods entre eux (Couche 3).
+
+kube-proxy gère les Services Kubernetes et répartit le trafic vers ces Pods (Load Balancing / Couche 4).
+
 ```sh
 CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
 CLI_ARCH=amd64
@@ -175,25 +179,25 @@ Une fois le cluster opérationnel, vous pouvez exécuter les commandes suivantes
 ```sh
 kubectl get nodes
 ```
-👉 Cette commande affiche tous les nœuds et leur statut (`Ready` signifie qu'ils sont opérationnels).
+Cette commande affiche tous les nœuds et leur statut (`Ready` signifie qu'ils sont opérationnels).
 
 ### Vérifier les pods en cours d'exécution dans `kube-system`
 ```sh
 kubectl get pods -n kube-system
 ```
-👉 Permet de voir si tous les composants internes de Kubernetes (comme Cilium, CoreDNS, etc.) fonctionnent bien.
+Permet de voir si tous les composants internes de Kubernetes (comme Cilium, CoreDNS, etc.) fonctionnent bien.
 
 ### Vérifier les logs d'un pod spécifique
 ```sh
 kubectl logs -n kube-system <nom_du_pod>
 ```
-👉 Utile si un pod est en `CrashLoopBackOff` ou `Pending` pour comprendre le problème.
+Utile si un pod est en `CrashLoopBackOff` ou `Pending` pour comprendre le problème.
 
 ### Déployer un pod de test (Nginx)
 ```sh
 kubectl run nginx-test --image=nginx --port=80
 ```
-👉 Cela lance un simple pod avec Nginx pour tester si Kubernetes exécute bien les conteneurs.
+Cela lance un simple pod avec Nginx pour tester si Kubernetes exécute bien les conteneurs.
 
 Vérifiez ensuite si le pod est bien en `Running` :
 ```sh
@@ -269,7 +273,7 @@ EOF
 sudo sysctl --system
 ```
 
-> 📌 *Ces réglages activent la redirection IP et la compatibilité réseau entre pods.*
+> *Ces réglages activent la redirection IP et la compatibilité réseau entre pods.*
 
 ---
 
@@ -312,7 +316,7 @@ sudo systemctl restart containerd
 sudo systemctl enable containerd
 ```
 
-> 📌 *Le paramètre `SystemdCgroup = true` est crucial pour que containerd fonctionne avec kubelet.*
+>  *Le paramètre `SystemdCgroup = true` est crucial pour que containerd fonctionne avec kubelet.*
 
 ---
 
