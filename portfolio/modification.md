@@ -1,8 +1,8 @@
 ---
-title: MODIFIER LE CONTENU DU SITE
+title: Modifier le contenu du site
 description: 
 published: 1
-date: 2026-11-11T11:06:05.415Z
+date: 2026-11-11T11:08:06.999Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:06:05.415Z
