@@ -1,8 +1,8 @@
 ---
-title: Les bases de la virtualisation
+title: 01 - Les bases de la virtualisation
 description: Cours théorique : hyperviseurs, VM, stockage, réseau, vCenter, cluster, snapshots, virtualisation imbriquée
 published: 1
-date: 2026-11-11T13:42:04.002Z
+date: 2026-11-11T13:43:19.135Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:42:04.002Z
