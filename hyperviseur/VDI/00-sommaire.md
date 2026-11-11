@@ -1,8 +1,8 @@
 ---
-title: Cours VDI : sommaire
+title: 00 - Cours VDI : sommaire
 description: Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon, de la théorie à la production, avec un lab
 published: 1
-date: 2026-11-11T13:44:14.247Z
+date: 2026-11-11T13:49:15.054Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:44:14.247Z
