@@ -2,7 +2,7 @@
 title: Modifier le contenu du site
 description: 
 published: 1
-date: 2026-11-11T11:08:06.999Z
+date: 2026-11-11T11:08:49.566Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:06:05.415Z
@@ -13,7 +13,7 @@ dateCreated: 2026-11-11T11:06:05.415Z
 Le guide pas à pas pour changer ce qui s'affiche sur le site : ajouter une nouvelle sortie dans
 une page de sport, des photos, une vidéo, un nouveau sport, ou changer un texte.
 
-Tout se fait **sur le PC**, dans `D:\Documents\Claude\alexandre-faye-3d\`. Le serveur n'est
+Tout se fait **sur le PC**, dans `/home/alexandre/alexandre-faye-3d/`. Le serveur n'est
 touché qu'à la toute fin, pour mettre en ligne (voir la page *Mettre à jour le site en ligne*).
 
 > **La règle d'or** : on ne modifie **jamais** le dossier `site/`. Il est effacé et recréé à
