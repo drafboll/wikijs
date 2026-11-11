@@ -2,7 +2,7 @@
 title: Mise à jour du site
 description: 
 published: 1
-date: 2026-11-11T11:10:30.738Z
+date: 2026-11-11T11:11:03.701Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:09:57.190Z
@@ -34,7 +34,7 @@ besoin, mettre à jour le formulaire ou la configuration Apache, et entretenir l
 
 ## 2. Préparer l'archive (PC)
 
-Double-clic sur **`preparer-mise-en-ligne.bat`**, dans `D:\Documents\Claude\alexandre-faye-3d\`.
+Double-clic sur **`preparer-mise-en-ligne.bat`**, dans `D:\Documents\alexandre-faye-3d\`.
 
 Il fait deux choses :
 
@@ -51,7 +51,7 @@ lis le message, corrige (souvent une virgule dans un `.json`) et relance.
 ## 3. Envoyer l'archive sur MINI (PC)
 
 Ouvre PowerShell **dans le dossier du projet** : dans l'Explorateur Windows, ouvre
-`D:\Documents\Claude\alexandre-faye-3d`, clique dans la barre d'adresse, tape `powershell` et
+`D:\Documents\alexandre-faye-3d`, clique dans la barre d'adresse, tape `powershell` et
 **Entrée**.
 
 ```bash
@@ -331,7 +331,7 @@ Dans `mail.log`, chaque envoi doit finir par `status=sent`.
 ## 10. Aide-mémoire
 
 ```bash
-# --- PC (PowerShell, dans D:\Documents\Claude\alexandre-faye-3d) ---
+# --- PC (PowerShell, dans D:\Documents\alexandre-faye-3d) ---
 # double-clic sur preparer-mise-en-ligne.bat, puis :
 scp mise-en-ligne\alexandre-faye-3d.tar.gz alexandre@MINI:~/
 
