@@ -1,14 +1,14 @@
 ---
-title: New Site
+title: Site alexandre-faye.fr
 description: 
 published: 1
-date: 2026-11-11T09:00:25.593Z
+date: 2026-11-11T11:05:07.825Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T09:00:25.593Z
 ---
 
-# CRÉATION DU SITE ALEXANDRE-FAYE.FR AVEC CLAUDE
+# CRÉATION DU SITE ALEXANDRE-FAYE.FR
 
 Comment le nouveau site a été construit, avec quel outil et quel skill, ce qui a été
 modifié par rapport au modèle de départ, puis comment le formulaire de contact et le script
