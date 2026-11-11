@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 450" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="980" height="450" fill="#ffffff"></rect>
+  <text x="490" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Thick ou thin : comment le disque virtuel occupe le datastore</text>
+  <text x="490" y="62" text-anchor="middle" font-size="14" fill="#5f6368">Exemple : un disque de 60 Go dans lequel Windows n'a écrit que 20 Go</text>
+  <g font-size="14">
+    
+    <text x="40" y="110" font-weight="700" fill="#d93025">Thick (épais)</text>
+    <text x="40" y="130" font-size="12" fill="#5f6368">les 60 Go sont réservés tout de suite</text>
+    <rect x="260" y="92" width="600" height="44" rx="6" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <rect x="260" y="92" width="200" height="44" rx="6" fill="#d93025"></rect>
+    <text x="360" y="119" text-anchor="middle" fill="#fff" font-weight="700">20 Go écrits</text>
+    <text x="660" y="119" text-anchor="middle" fill="#a50e0e">40 Go réservés mais vides</text>
+    <text x="875" y="119" font-size="13" fill="#a50e0e" font-weight="700">= 60 Go</text>
+    
+    <text x="40" y="200" font-weight="700" fill="#188038">Thin (fin)</text>
+    <text x="40" y="220" font-size="12" fill="#5f6368">grossit au fur et à mesure des écritures</text>
+    <rect x="260" y="182" width="600" height="44" rx="6" fill="#ffffff" stroke="#188038" stroke-width="2" stroke-dasharray="6 4"></rect>
+    <rect x="260" y="182" width="200" height="44" rx="6" fill="#188038"></rect>
+    <text x="360" y="209" text-anchor="middle" fill="#fff" font-weight="700">20 Go écrits</text>
+    <text x="660" y="209" text-anchor="middle" fill="#5f6368">promis à la VM, pas encore consommé</text>
+    <text x="875" y="209" font-size="13" fill="#0d652d" font-weight="700">= 20 Go</text>
+  </g>
+  
+  <rect x="40" y="260" width="900" height="170" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+  <text x="60" y="290" font-size="16" font-weight="700" fill="#b06000">⚠ Le piège du thin : la surallocation (overcommit)</text>
+  <g font-size="13" fill="#3c4043">
+    <text x="60" y="318">Ton datastore ds-esx01 fait 300 Go. Avec du thin, tu peux « promettre » plus que 300 Go au total :</text>
+    <rect x="60" y="335" width="520" height="28" rx="4" fill="#fff" stroke="#9aa0a6"></rect>
+    <rect x="60" y="335" width="190" height="28" rx="4" fill="#1a73e8"></rect><text x="155" y="354" text-anchor="middle" fill="#fff" font-size="12">vCenter ~350 Go promis</text>
+    <rect x="250" y="335" width="50" height="28" fill="#8430ce"></rect><text x="275" y="354" text-anchor="middle" fill="#fff" font-size="11">CS 80</text>
+    <rect x="300" y="335" width="40" height="28" fill="#188038"></rect><text x="320" y="354" text-anchor="middle" fill="#fff" font-size="11">GI 60</text>
+    <rect x="340" y="335" width="60" height="28" fill="#e37400"></rect><text x="370" y="354" text-anchor="middle" fill="#fff" font-size="11">VDI...</text>
+    <line x1="400" y1="328" x2="400" y2="370" stroke="#d93025" stroke-width="3"></line>
+    <text x="410" y="354" font-size="12" fill="#d93025" font-weight="700">limite physique 300 Go</text>
+    <text x="60" y="392">Tant que les VM n'écrivent pas tout, ça marche. Si elles remplissent vraiment leurs disques, le datastore</text>
+    <text x="60" y="412">est plein ➜ les VM se figent. Surveille toujours l'espace « Free » du datastore dans vCenter.</text>
+  </g>
+</svg>
