@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 480" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="980" height="480" fill="#ffffff"></rect>
+  <text x="490" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Comment fonctionne un snapshot</text>
+  <text x="490" y="58" text-anchor="middle" font-size="13" fill="#5f6368">Un snapshot n'est PAS une copie : il fige le disque et redirige les nouvelles écritures vers un fichier « delta »</text>
+  <g font-size="13" text-anchor="middle">
+    
+    <rect x="40" y="90" width="220" height="110" rx="8" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="150" y="115" font-weight="700" fill="#0d652d">Disque de base</text>
+    <text x="150" y="135" font-family="Consolas, monospace" font-size="12" fill="#0d652d">Golden-Image.vmdk</text>
+    <text x="150" y="160" fill="#3c4043" font-size="12">Windows + Tools + Agent</text>
+    <text x="150" y="182" fill="#0d652d" font-size="12" font-weight="700">🔒 lecture seule après snapshot</text>
+    <line x1="260" y1="145" x2="330" y2="145" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    
+    <rect x="335" y="90" width="220" height="110" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="445" y="115" font-weight="700" fill="#174ea6">Snapshot « gold-v1 »</text>
+    <text x="445" y="135" font-family="Consolas, monospace" font-size="12" fill="#174ea6">-000001.vmdk (delta)</text>
+    <text x="445" y="160" fill="#3c4043" font-size="12">+ mises à jour de décembre</text>
+    <text x="445" y="182" fill="#174ea6" font-size="12" font-weight="700">🔒 lecture seule</text>
+    <line x1="555" y1="145" x2="625" y2="145" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    
+    <rect x="630" y="90" width="220" height="110" rx="8" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+    <text x="740" y="115" font-weight="700" fill="#b06000">Écritures en cours</text>
+    <text x="740" y="135" font-family="Consolas, monospace" font-size="12" fill="#b06000">-000002.vmdk (delta)</text>
+    <text x="740" y="160" fill="#3c4043" font-size="12">la VM écrit ici maintenant</text>
+    <text x="740" y="182" fill="#b06000" font-size="12" font-weight="700">✏ lecture/écriture</text>
+    <text x="905" y="150" fill="#5f6368" font-size="22">◀ VM</text>
+  </g>
+  
+  <text x="40" y="240" font-size="14" font-weight="700" fill="#3c4043">Quand la VM lit un bloc :</text>
+  <text x="40" y="262" font-size="13" fill="#3c4043">elle cherche d'abord dans le delta le plus récent, puis remonte la chaîne jusqu'au disque de base.</text>
+  
+  <g font-size="13">
+    <rect x="40" y="285" width="440" height="170" rx="10" fill="#e6f4ea" stroke="#188038"></rect>
+    <text x="60" y="312" font-weight="700" fill="#0d652d">✓ Bons usages</text>
+    <text x="60" y="338" fill="#3c4043">• Point de retour avant une mise à jour risquée</text>
+    <text x="60" y="362" fill="#3c4043">• Versionner la golden image (gold-v1, gold-v2...)</text>
+    <text x="60" y="386" fill="#3c4043">• Horizon clone les bureaux à partir d'un snapshot</text>
+    <text x="60" y="410" fill="#3c4043">• Rapide à créer (quelques secondes)</text>
+    <text x="60" y="434" fill="#3c4043">• Inclure ou non la mémoire (état allumé)</text>
+    <rect x="500" y="285" width="440" height="170" rx="10" fill="#fce8e6" stroke="#d93025"></rect>
+    <text x="520" y="312" font-weight="700" fill="#a50e0e">✗ Ce n'est pas une sauvegarde</text>
+    <text x="520" y="338" fill="#3c4043">• Si le disque de base est perdu, tout est perdu</text>
+    <text x="520" y="362" fill="#3c4043">• Le delta grossit sans arrêt et remplit le datastore</text>
+    <text x="520" y="386" fill="#3c4043">• Une longue chaîne ralentit les performances</text>
+    <text x="520" y="410" fill="#3c4043">• Sur un serveur de prod : ne pas garder &gt; 72 h</text>
+    <text x="520" y="434" fill="#3c4043">• Supprimer = fusionner (consolidation)</text>
+  </g>
+</svg>
