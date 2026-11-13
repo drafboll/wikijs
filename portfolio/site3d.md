@@ -2,7 +2,7 @@
 title: Site alexandre-faye.fr
 description: 
 published: 1
-date: 2026-11-11T11:05:07.825Z
+date: 2026-11-13T17:34:05.630Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T09:00:25.593Z
@@ -10,10 +10,11 @@ dateCreated: 2026-11-11T09:00:25.593Z
 
 # CRÉATION DU SITE ALEXANDRE-FAYE.FR
 
-Comment le nouveau site a été construit, avec quel outil et quel skill, ce qui a été
+Comment mon nouveau site a été construit, avec quel outil et quel skill, ce qui a été
 modifié par rapport au modèle de départ, puis comment le formulaire de contact et le script
 de sauvegarde ont été mis en place sur le serveur MINI.
 
+![capture_d'écran_2026-11-13_183120.png](/portolio/capture_d'écran_2026-11-13_183120.png)
 > **Pages liées** : *Modifier le contenu du site* (ajouter un récit, des photos, un sport…)
 > et *Mettre à jour le site en ligne*.
 {.is-info}
@@ -142,16 +143,6 @@ version au lieu de garder l'ancienne en cache.
 ---
 
 ## 5. La mise en ligne sur MINI
-
-```mermaid
-graph LR
-  A[PC : sources<br>json + template] -->|build_site.py| B[site/]
-  B -->|package_site.py| C[alexandre-faye-3d.tar.gz]
-  C -->|scp| D[MINI : /var/www/alexandre-faye-3d]
-  D --> E[Apache]
-  E --> F[Cloudflare]
-  F --> G[Visiteurs]
-```
 
 | Élément | Emplacement sur MINI |
 |---|---|
