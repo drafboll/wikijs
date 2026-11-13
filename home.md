@@ -2,7 +2,7 @@
 title: Accueil
 description: 
 published: 1
-date: 2026-11-13T18:42:16.369Z
+date: 2026-11-13T18:43:27.930Z
 tags: accueil, alexandre, page d'accueil, tuto
 editor: markdown
 dateCreated: 2023-01-29T15:33:30.787Z
@@ -14,7 +14,7 @@ dateCreated: 2023-01-29T15:33:30.787Z
 
 *Mon carnet de bord infra, cloud et réseau : appris en lab, partagé ici.*
 
-`☸️ Kubernetes` `🏗️ Terraform` `☁️ AWS` `🖥️ VMware` `🌐 Réseau` `🐧 Linux` `🪟 Windows`
+`🖥️ VMware``🪟 Windows``🐧 Linux` `☸️ Kubernetes` `🏗️ Terraform` `☁️ AWS` `🌐 Réseau`
 
 ```bash
 alex@lab:~$ whoami
