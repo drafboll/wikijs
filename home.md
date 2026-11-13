@@ -2,42 +2,58 @@
 title: Accueil
 description: 
 published: 1
-date: 2026-11-13T18:35:32.329Z
+date: 2026-11-13T18:42:16.369Z
 tags: accueil, alexandre, page d'accueil, tuto
 editor: markdown
 dateCreated: 2023-01-29T15:33:30.787Z
 ---
 
-<div align="center">
+# Wiki d'Alexandre
+
+### Je monte, je casse, je répare… et je documente tout.
+
+*Mon carnet de bord infra, cloud et réseau : appris en lab, partagé ici.*
+
+`☸️ Kubernetes` `🏗️ Terraform` `☁️ AWS` `🖥️ VMware` `🌐 Réseau` `🐧 Linux` `🪟 Windows`
+
+```bash
+alex@lab:~$ whoami
+ingé infra & cloud, curieux de tout
+
+alex@lab:~$ kubectl get skills
+k8s  terraform  aws  vsphere  cisco  ad  veeam  ceph  openstack  llm …
+
+alex@lab:~$ ./apprendre --toujours
+[████████████░░░░] next: le prochain lab
+```
+
+---
 
 ## Salut, moi c'est Alexandre !
-![wiki_presentation.png](/wiki_presentation.png)
 
-</div>
 Bienvenue sur mon **carnet de bord technique**. Ici, je documente tout ce que j'apprends : mes labs, mes projets, mes cours de l'ESGI, mes galères… et surtout **comment je m'en suis sorti**.
 
 Ma règle est simple : *si je l'ai monté une fois, je l'écris pour pouvoir le refaire*. Et si ça peut aider quelqu'un d'autre au passage, c'est encore mieux.
 
->  Toutes les procédures ont été testées dans mon homelab ou en cours. Tu vois une erreur ou une meilleure façon de faire ? Dis-le moi, c'est comme ça qu'on progresse !
+> Toutes les procédures ont été testées dans mon homelab ou en cours. Tu vois une erreur ou une meilleure façon de faire ? Dis-le moi, c'est comme ça qu'on progresse !
 {.is-info}
 
 Envie d'en savoir plus sur moi ? Mon portfolio : **[alexandre-faye.fr](https://alexandre-faye.fr)**
 
 ---
 
-## 🚀 Mes projets préférés
+## Mes projets préférés
 
-- [🖥️ Cours VDI complet *De zéro à Omnissa Horizon en production, en 8 chapitres*](/fr/hyperviseur/VDI/00-sommaire)
-- [☸️ Cluster Kubernetes *Installation, Traefik, Longhorn, Teleport…*](/fr/Kubernetes/Kubernetes)
-- [☁️ EKS sécurisé + CI/CD GitLab *Toute l'infra AWS en Terraform*](/fr/terraform/eks-cicd)
-- [🧱 OpenStack multinœud *Déployé avec Kolla-Ansible*](/fr/linux/OpenStack)
-- [🔐 VPN post-quantique *IKEv2/IPsec, certificats X.509 et PPK*](/fr/Réseau/PQC)
-- [🤖 Chatbot 100 % local *Un LLM de support, sans rien envoyer dans le cloud*](/fr/llm/chatbot)
+- [🖥️ Hyperviseur : cours VDI complet *De zéro à Omnissa Horizon en production, en 8 chapitres*](/fr/hyperviseur/VDI/00-sommaire)
+- [🌐 Portfolio : mon site alexandre-faye.fr *Comment j'ai construit mon site perso*](/fr/portfolio/site3d)
+- [☁️ Terraform : déploiement d'un cluster EKS *Un cluster Kubernetes sur AWS, entièrement en Infra as Code*](/fr/terraform/eks-aws)
+- [🤖 LLM : mettre en place un chatbot *Un chatbot de support 100 % local, sans rien envoyer dans le cloud*](/fr/llm/chatbot)
+- [🛡️ Windows : PRA avec Veeam Backup & Replication *Sauvegarder, restaurer et reprendre l'activité après un incident*](/fr/windows/VEEAM/backup)
 {.links-list}
 
 ---
 
-## 🗂️ Explorer par thème
+## Explorer par thème
 
 | Thème | Ce que tu y trouveras | Pour commencer |
 |---|---|---|
@@ -52,14 +68,5 @@ Envie d'en savoir plus sur moi ? Mon portfolio : **[alexandre-faye.fr](https://a
 
 ---
 
-## 🌱 En ce moment, je creuse…
-
-- La **virtualisation de postes** avec Omnissa Horizon
-- Le **stockage distribué** avec Ceph et la haute dispo KVM
-- La **sécurité post-quantique** appliquée aux VPN
-
-> 🧠 *« Plus j'apprends, plus je réalise tout ce qu'il me reste à apprendre… et c'est exactement ce qui me motive. »*
+> *« Plus j'apprends, plus je réalise tout ce qu'il me reste à apprendre… et c'est exactement ce qui me motive. »*
 {.is-success}
-
-
-
