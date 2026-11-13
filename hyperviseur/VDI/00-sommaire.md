@@ -2,7 +2,7 @@
 title: 00 - Cours VDI : sommaire
 description: Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon, de la théorie à la production, avec un lab
 published: 1
-date: 2026-11-11T13:49:15.054Z
+date: 2026-11-13T17:45:11.044Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:44:14.247Z
@@ -66,13 +66,3 @@ dateCreated: 2026-11-11T13:44:14.247Z
 | Disque des bureaux | 40 Go choisis dans le pool | Pour un Instant Clone, le disque **est celui de la golden image** (thin et partagé) |
 | DHCP | « DHCP ou .20 » | Un serveur DHCP **unique** (SRV-GRP3), DHCP de VMnet8 désactivé |
 | Réseau nested | Non mentionné | **Promiscuité, changements de MAC et transmissions forgées** à accepter sur vSwitch0 |
-
-## Conventions utilisées dans ce wiki
-
-- Encadré bleu : information. Vert : bonne pratique. Jaune : attention. Rouge : danger, à ne pas faire.
-- Les commandes PowerShell sont à lancer **en administrateur**.
-- `SRV-GRP3\...` désigne le nom NetBIOS du domaine : vérifie le tien avec `(Get-ADDomain).NetBIOSName`.
-- Les intitulés d'écrans suivent **Horizon 8 2412** et peuvent légèrement varier selon la version.
-
-> **Les images** de ce cours sont dans le dossier d'assets `vdi` de Wiki.js (format SVG), et sont appelées ainsi : `![titre](/vdi/nom-du-fichier.svg)`. Uploade les 32 fichiers du dossier `images` dans ce dossier d'assets.
-{.is-info}
