@@ -2,7 +2,7 @@
 title: Site alexandre-faye.fr
 description: 
 published: 1
-date: 2026-11-13T17:34:05.630Z
+date: 2026-11-13T17:37:25.416Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T09:00:25.593Z
@@ -318,12 +318,3 @@ UUID=62EA3B04EA3AD44F /media/alexandre/ ntfs defaults,nofail 0 0
 Vérifiée avec `sudo findmnt --verify` (0 erreur), puis `sudo systemctl daemon-reload`. Ancienne
 version gardée dans `/etc/fstab.avant-nofail`.
 
----
-
-## 8. Reste à faire
-
-- Cloudflare **Turnstile** sur le formulaire (anti-robot).
-- Audit de sécurité : Cloudflare Access devant Portainer, Deluge, Stirling PDF… ; TLS 1.2
-  minimum ; DKIM, DMARC, SPF ; pare-feu limité aux IP Cloudflare.
-- Contenu : vidéo de tennis à convertir, page Course à remplir, CV en anglais.
-- Dans quelques semaines : supprimer WordPress (en gardant PHP pour le formulaire).
