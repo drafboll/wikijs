@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="560" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Comment Horizon fabrique des Instant Clones</text>
+  <g font-size="12" text-anchor="middle">
+    
+    <rect x="20" y="60" width="170" height="120" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="105" y="85" font-weight="700" font-size="13" fill="#174ea6">Golden Image</text>
+    <text x="105" y="105" fill="#3c4043">VM éteinte</text>
+    <text x="105" y="123" fill="#3c4043">snapshot gold-v1</text>
+    <text x="105" y="145" fill="#174ea6" font-weight="700">tu la gères</text>
+    <text x="105" y="165" fill="#5f6368">dossier Golden</text>
+    <line x1="190" y1="120" x2="228" y2="120" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="210" y="110" fill="#5f6368">①</text>
+    
+    <rect x="232" y="60" width="170" height="120" rx="10" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="317" y="85" font-weight="700" font-size="13" fill="#3c4043">cp-template</text>
+    <text x="317" y="105" fill="#3c4043">copie liée au snapshot</text>
+    <text x="317" y="123" fill="#3c4043">personnalisée une fois</text>
+    <text x="317" y="141" fill="#3c4043">(ClonePrep)</text>
+    <text x="317" y="165" fill="#5f6368">VM interne Horizon</text>
+    <line x1="402" y1="120" x2="440" y2="120" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="421" y="110" fill="#5f6368">②</text>
+    
+    <rect x="444" y="60" width="170" height="120" rx="10" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="529" y="85" font-weight="700" font-size="13" fill="#3c4043">cp-replica</text>
+    <text x="529" y="105" fill="#3c4043">disque en lecture seule</text>
+    <text x="529" y="123" fill="#3c4043">1 par datastore</text>
+    <text x="529" y="141" fill="#3c4043">partagé par les clones</text>
+    <text x="529" y="165" fill="#5f6368">VM interne Horizon</text>
+    <line x1="614" y1="120" x2="652" y2="120" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="633" y="110" fill="#5f6368">③</text>
+    
+    <rect x="656" y="60" width="170" height="120" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+    <text x="741" y="85" font-weight="700" font-size="13" fill="#b06000">cp-parent</text>
+    <text x="741" y="105" fill="#3c4043">VM allumée puis</text>
+    <text x="741" y="123" fill="#3c4043">« figée » en mémoire</text>
+    <text x="741" y="141" fill="#3c4043">1 par hôte ESXi</text>
+    <text x="741" y="165" fill="#5f6368">(mode « avec parent »)</text>
+    <line x1="826" y1="120" x2="858" y2="120" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="842" y="110" fill="#5f6368">④</text>
+    
+    <rect x="862" y="55" width="125" height="40" rx="6" fill="#e6f4ea" stroke="#188038"></rect><text x="924" y="80" fill="#0d652d" font-weight="700">vdi-01</text>
+    <rect x="862" y="100" width="125" height="40" rx="6" fill="#e6f4ea" stroke="#188038"></rect><text x="924" y="125" fill="#0d652d" font-weight="700">vdi-02</text>
+    <rect x="862" y="145" width="125" height="40" rx="6" fill="#e6f4ea" stroke="#188038"></rect><text x="924" y="170" fill="#0d652d" font-weight="700">vdi-03</text>
+  </g>
+  
+  <rect x="20" y="210" width="960" height="190" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+  <text x="40" y="238" font-size="16" font-weight="700" fill="#0d652d">Le secret : le « fork » de VM (comme une cellule qui se divise)</text>
+  <g font-size="13" fill="#3c4043">
+    <rect x="40" y="255" width="300" height="130" rx="8" fill="#fff" stroke="#188038"></rect>
+    <text x="190" y="278" text-anchor="middle" font-weight="700">Mémoire</text>
+    <rect x="60" y="290" width="260" height="26" rx="4" fill="#fef7e0" stroke="#e37400"></rect><text x="190" y="308" text-anchor="middle" font-size="12">pages RAM du parent (partagées, lecture)</text>
+    <rect x="60" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="100" y="339" text-anchor="middle" font-size="11">delta vdi-01</text>
+    <rect x="150" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="190" y="339" text-anchor="middle" font-size="11">delta vdi-02</text>
+    <rect x="240" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="280" y="339" text-anchor="middle" font-size="11">delta vdi-03</text>
+    <text x="190" y="372" text-anchor="middle" font-size="12">copy-on-write : on ne copie que ce qui change</text>
+    <rect x="360" y="255" width="300" height="130" rx="8" fill="#fff" stroke="#188038"></rect>
+    <text x="510" y="278" text-anchor="middle" font-weight="700">Disque</text>
+    <rect x="380" y="290" width="260" height="26" rx="4" fill="#f1f3f4" stroke="#5f6368"></rect><text x="510" y="308" text-anchor="middle" font-size="12">disque du replica (lecture seule, partagé)</text>
+    <rect x="380" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="420" y="339" text-anchor="middle" font-size="11">delta vdi-01</text>
+    <rect x="470" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="510" y="339" text-anchor="middle" font-size="11">delta vdi-02</text>
+    <rect x="560" y="322" width="80" height="24" rx="4" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="600" y="339" text-anchor="middle" font-size="11">delta vdi-03</text>
+    <text x="510" y="372" text-anchor="middle" font-size="12">40 Go « promis », quelques Go réellement écrits</text>
+    <g font-size="12">
+      <text x="680" y="275" font-weight="700">Résultat :</text>
+      <text x="680" y="297">• un bureau prêt en quelques secondes</text>
+      <text x="680" y="317">• déjà démarré : pas de boot Windows</text>
+      <text x="680" y="337">• très peu d'espace disque consommé</text>
+      <text x="680" y="357">• ClonePrep donne un nom et un compte AD</text>
+      <text x="692" y="375">uniques à chaque clone, sans Sysprep</text>
+    </g>
+  </g>
+  
+  <rect x="20" y="420" width="960" height="125" rx="12" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+  <text x="40" y="447" font-size="16" font-weight="700" fill="#5b1e8a">Le cycle de vie d'un bureau dans un pool flottant</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="40" y="462" width="140" height="60" rx="8" fill="#fff" stroke="#8430ce"></rect><text x="110" y="487">Provisioning</text><text x="110" y="505" fill="#5f6368">clone + ClonePrep</text>
+    <text x="198" y="497" font-size="18" fill="#8430ce">➜</text>
+    <rect x="215" y="462" width="140" height="60" rx="8" fill="#fff" stroke="#188038"></rect><text x="285" y="487">Available</text><text x="285" y="505" fill="#5f6368">prêt, en attente</text>
+    <text x="373" y="497" font-size="18" fill="#8430ce">➜</text>
+    <rect x="390" y="462" width="140" height="60" rx="8" fill="#fff" stroke="#1a73e8"></rect><text x="460" y="487">Connected</text><text x="460" y="505" fill="#5f6368">l'utilisateur travaille</text>
+    <text x="548" y="497" font-size="18" fill="#8430ce">➜</text>
+    <rect x="565" y="462" width="140" height="60" rx="8" fill="#fff" stroke="#e37400"></rect><text x="635" y="487">Logoff</text><text x="635" y="505" fill="#5f6368">déconnexion</text>
+    <text x="723" y="497" font-size="18" fill="#8430ce">➜</text>
+    <rect x="740" y="462" width="220" height="60" rx="8" fill="#fff" stroke="#d93025"></rect><text x="850" y="487">Suppression / refresh</text><text x="850" y="505" fill="#5f6368">puis un clone neuf le remplace</text>
+  </g>
+</svg>
