@@ -2,7 +2,7 @@
 title: Mise à jour du site
 description: 
 published: 1
-date: 2026-11-14T20:56:17.654Z
+date: 2026-11-14T21:17:05.757Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:09:57.190Z
@@ -313,7 +313,34 @@ statistiques ou de cookies (il faudrait alors un bandeau de consentement). Chang
 | **Title et description** | `"title"` et `"meta_description"` en haut de chaque JSON : ce que Google affiche dans ses résultats. |
 
 **Une seule fois, après la première mise en ligne du sitemap :** Search Console → **Sitemaps**
-→ saisir `sitemap.xml` → **Envoyer**. Ensuite Google le relit tout seul.
+→ saisir l'adresse complète `https://alexandre-faye.fr/sitemap.xml` (propriété de type domaine)
+→ **Envoyer**. Ensuite Google le relit tout seul. ✅ Fait le 14/11/2026 : « Opération effectuée »,
+6 pages découvertes.
+
+### Vitesse du site (mesurée le 14/11/2026)
+
+PageSpeed (https://pagespeed.web.dev), téléphone simulé en 4G lente : **60/100** en
+performances, 92 en accessibilité, 100 en bonnes pratiques, 100 en SEO. Le texte s'affiche en
+**0,9 s** ; la note vient surtout de l'animation 3D, très coûteuse sur le téléphone sans carte
+graphique que simule le test. Sur PC : premier affichage en 0,8 s, réponse du serveur 89 ms.
+
+| Amélioration | Où | Gain |
+|---|---|---|
+| Photo de profil en **WebP 336 px** (`media/profil/photo-profil.webp`) | `"avatar"` de `site.json` et `site-en.json` | 288 Ko → 8 Ko |
+| Polices en **WOFF2** (le TTF reste en secours) | `template\css\fonts.css` | 68 Ko → 26 Ko par police |
+| **3D allégée** sur téléphone et petit écran : 1,25 pixel au lieu de 1,5, ombre 1024, 20 images/s au repos | `LIGHT_GPU` en haut de `template\js\app.js` | moins de calcul, batterie |
+| Photos gardées 30 jours dans le navigateur | règle de cache Cloudflare (wiki 05, §1.1 bis) | visites suivantes |
+
+**Nouvelle photo de profil :** la convertir en WebP carré d'environ 336 px (par exemple sur
+squoosh.app), la nommer autrement que l'ancienne, et mettre le nom dans `"avatar"`.
+
+**Retour arrière :** remettre `photo-profil.png` dans `"avatar"` ; pour la 3D, remplacer
+`LIGHT_GPU ? 1.25 : 1.5` par `1.5` dans `app.js` ; reconstruire.
+
+**Problèmes de sécurité (vu le 14/11/2026) :** « Pages trompeuses » et « Hameçonnage lors de la
+connexion », analyse Google du 8/09/2026, du temps de l'ancien WordPress (aucun exemple d'URL ;
+`wp-login.php`, `wp-admin/`, `xmlrpc.php` renvoient 403). Demande d'examen à envoyer depuis
+Search Console → Problèmes de sécurité → **Demander un examen**. Envoyée le : ____
 
 **Vérifier en ligne :** `https://alexandre-faye.fr/sitemap.xml` et `https://alexandre-faye.fr/robots.txt`
 doivent s'afficher.
