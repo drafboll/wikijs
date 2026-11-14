@@ -2,7 +2,7 @@
 title: Sécuriser un serveur Ubuntu auto-hébergé derrière Cloudflare
 description: 
 published: 1
-date: 2026-11-14T17:52:57.437Z
+date: 2026-11-14T19:20:53.947Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-12T01:30:00.938Z
@@ -1262,8 +1262,8 @@ protègent ni contre un incendie, ni contre un vol, une surtension ou un rançon
 | Lectures (classe B) | 10 millions | 0,36 $ par million |
 | Téléchargement (sortie) | **gratuit** | **gratuit** |
 
-Pour des sauvegardes hebdomadaires de quelques Go, la facture reste à **0 €**. Cloudflare demande
-quand même un moyen de paiement à l'activation.
+Avec un envoi tous les 3 mois de quelques centaines de Mo, la facture reste à **0 €**. Cloudflare
+demande quand même un moyen de paiement à l'activation.
 
 ### Le principe
 ```
@@ -1274,12 +1274,21 @@ Script (serveur) ──► archive ──► rclone « crypt » : chiffrement SU
 le contenu **et les noms des fichiers** avant l'envoi. Même si le compte Cloudflare était piraté,
 les sauvegardes resteraient illisibles.
 
+**Les quatre règles de cette sauvegarde :**
+
+| Règle | Comment |
+|---|---|
+| **Rien n'est supprimé automatiquement par Cloudflare** | Aucune règle de cycle de vie sur le bucket |
+| **Seul le script supprime**, et seulement après un nouvel envoi **réussi et vérifié** | Il garde la nouvelle copie + la précédente. Si le serveur meurt, le script ne tourne plus : plus rien n'est jamais supprimé |
+| **Une copie récente ne peut pas être effacée**, même avec la clé | Verrou de bucket de 90 jours |
+| **Jamais plus de 9 Go** (la partie gratuite s'arrête à 10) | Le script mesure **avant** d'envoyer et refuse d'envoyer si ça dépasserait |
+
 ### 18.1 Choisir ce qui part hors site : une liste blanche
 On n'envoie pas tout le serveur : seulement ce qui est **irremplaçable** et **long à refaire**.
 
 | Envoyer | Ne pas envoyer |
 |---|---|
-| Le site, s'il n'existe nulle part ailleurs | Les films et la musique (trop gros, souvent récupérables autrement) |
+| Le site, s'il n'existe nulle part ailleurs (sa dernière archive de sauvegarde locale) | Les films et la musique (trop gros, souvent récupérables autrement) |
 | La **sauvegarde de base** faite par l'application elle-même (gestionnaire de mots de passe, wiki…) | La base « vivante » en cours d'utilisation (grosse et parfois incohérente si on la copie à chaud) |
 | La configuration des applications : piles Docker, réglages | Les caches, les miniatures, les métadonnées qui se retéléchargent (serveur multimédia) |
 | La **configuration du serveur** : `/etc/apache2`, `smb.conf`, `sshd_config.d`, `fail2ban/jail.d`, `ufw`, `fstab`, les scripts, la crontab | Les journaux (journal DNS d'un bloqueur de publicités, journaux d'applications…) |
@@ -1293,7 +1302,12 @@ Les plus gros sont en bas.
 ```bash
 sudo du -h --max-depth=3 /srv/docker/application | sort -h | tail -12
 ```
-On y repère vite les caches et les journaux.
+On y repère vite les caches et les journaux. Puis on mesure **exactement** la liste retenue :
+```bash
+sudo du -sh /opt/gestionnaire-mdp/config --exclude=logs /srv/docker/portainer /srv/docker/wiki /etc /scripts
+```
+Ordre de grandeur constaté : moins de 500 Mo bruts, environ **170 Mo** une fois compressés avec
+l'archive du site.
 
 **Liste blanche :** le script n'envoie **que les chemins écrits un par un**. Une nouvelle
 application ajoutée dans `/srv/docker` **ne part pas** tant qu'on ne l'ajoute pas à la liste. On
@@ -1302,35 +1316,71 @@ externaliser.
 
 ### 18.2 Préparer R2 (tableau de bord Cloudflare)
 1. **R2 → Activer**, avec l'offre gratuite.
-2. **Créer un bucket** `sauvegardes-serveur` : classe **Standard**, et **juridiction UE** si elle
-   est proposée (les données restent en Europe).
+2. **Créer un bucket** `sauvegardes-serveur` : classe **Standard** (pas « Accès peu fréquent » :
+   pas d'offre gratuite et des frais de lecture), et **juridiction UE** (les données restent en
+   Europe).
 3. **Ne PAS créer de règle de cycle de vie** du type « supprimer après 60 jours ». Elle efface les
-   fichiers selon leur âge, **même si le serveur ne fonctionne plus**. Si le serveur meurt, toutes
-   les copies auront disparu 60 jours plus tard, exactement quand on en a besoin. C'est le script
-   qui fera la rotation (15.5).
-4. **Verrou de bucket** (*Bucket lock*) : bucket → Paramètres → **Règles de verrouillage** :
-   - préfixe `auto/`, rétention **30 jours** ;
-   - *(optionnel)* préfixe `archives/`, **365 jours**.
+   fichiers selon leur âge, **même si le serveur ne fonctionne plus** : si le serveur meurt, toutes
+   les copies disparaissent justement quand on en a besoin. C'est le script qui fait la rotation.
+   La règle par défaut « *Default Multipart Abort Rule* » peut rester : elle ne nettoie que les
+   envois interrompus.
+4. **Verrou de bucket** : bucket → **Paramètres** → **Règles de verrouillage des compartiments**
+   → ajouter une règle :
+   - nom `protection-auto`, préfixe `auto/`, rétention **90 jours** ;
+   - *(optionnel)* nom `protection-archives`, préfixe `archives/`, **365 jours**.
 
-   Plus personne ne peut supprimer une copie de moins de 30 jours, **même avec une clé valide**.
-   Si le serveur est piraté, un rançongiciel ne peut pas effacer tes sauvegardes récentes avant de
-   chiffrer le serveur. Évite « indéfini » : tu ne pourrais plus jamais supprimer ces fichiers.
-5. **Jeton d'API R2** (*Manage R2 API Tokens → Create*) :
-   - autorisation **Lecture et écriture d'objets** (pas « Admin ») ;
-   - **limité à ce seul bucket** ;
-   - note l'*Access Key ID*, la *Secret Access Key* et l'*endpoint* dans ton gestionnaire de mots
-     de passe.
+   | Ce que fait le verrou | Ce qu'il ne fait pas |
+   |---|---|
+   | Interdit de **supprimer ou remplacer** une copie de moins de 90 jours, **même avec une clé valide** (un rançongiciel ne peut pas effacer les sauvegardes avant de chiffrer le serveur) | Il ne supprime **jamais** rien. Une copie de plus de 90 jours redevient seulement *supprimable* |
 
-   Si le serveur est compromis, la clé ne donne accès qu'à ce bucket : ni au DNS, ni à Access, ni
-   au reste du compte.
-6. **Notifications → Compte et facturation → Alerte de budget**, à 1 $ : un filet de sécurité si
-   l'usage dépasse un jour la partie gratuite.
+   Avec un envoi tous les 3 mois, le script supprime des copies d'environ **6 mois** : le verrou
+   ne le gêne pas. ⚠️ Avec la règle `archives/`, **toi non plus** tu ne peux pas supprimer ni
+   remplacer l'archive pendant 1 an. Évite « indéfini » : ces fichiers ne pourraient plus jamais
+   être supprimés.
+5. **Jeton d'API R2** (*Gérer les jetons d'API R2 → Créer un jeton*) :
+
+   | Champ | Valeur | Pourquoi |
+   |---|---|---|
+   | Nom | `rclone-srv01` | |
+   | Autorisations | **Lecture/écriture objet** (pas « Admin ») | Il gère les fichiers, mais ne peut ni supprimer le bucket, ni retirer le verrou |
+   | Compartiments | **uniquement** `sauvegardes-serveur` | Si le serveur est compromis, la clé ne donne accès qu'à ce bucket : ni au DNS, ni à Access, ni au reste du compte |
+   | TTL | Indéfiniment | Sinon la sauvegarde s'arrête le jour où le jeton expire |
+   | Filtrage IP | vide au départ | À ajouter **après** les premiers tests réussis, en pensant à l'**IPv6** : avec seulement l'IPv4, les envois en IPv6 seraient refusés |
+
+   Note l'*Access Key ID*, la *Secret Access Key* (affichée une seule fois) et l'*endpoint* **UE**
+   (il contient `.eu.`) dans ton gestionnaire de mots de passe.
+6. **Notifications → Ajouter → Alerte de budget de facturation**, à 1 $ : un filet de sécurité
+   si l'usage dépasse un jour la partie gratuite.
 
 ### 18.3 Installer et configurer rclone (sur le serveur)
+
+> **N'installe pas rclone avec `apt install rclone`.** Ubuntu 24.04 fournit la **v1.60** (2022) :
+> avec R2, chaque envoi affiche `501 NotImplemented: Not Implemented` (le fichier arrive, mais
+> rclone croit à un échec et recommence). Installe la version officielle.
+{.is-warning}
+
 ```bash
-sudo apt install rclone
+cd /tmp
 ```
-Le script tournera en root, donc la configuration est celle de root :
+```bash
+wget https://downloads.rclone.org/rclone-current-linux-amd64.deb
+```
+```bash
+sudo apt install ./rclone-current-linux-amd64.deb
+```
+Le `./` indique à apt d'installer **ce fichier**, et non de le chercher dans les dépôts.
+```bash
+rclone version
+```
+Il faut une version récente (testé avec la **v1.76.0**).
+
+**Mise à jour :** rclone n'a **pas de dépôt apt officiel** (évite les PPA non officiels), et
+`apt upgrade` ne la remplacera jamais par la vieille version d'Ubuntu. Pour mettre à jour, on
+refait les 3 commandes ci-dessus, **à la main**. Le script ne fait que **vérifier** et prévenir
+dans son e-mail : une mise à jour automatique, en root, juste avant une sauvegarde, pourrait la
+casser (et télécharger puis installer un programme sans contrôle, en root, est un risque).
+
+Le script tourne en root, donc la configuration est celle de root :
 ```bash
 sudo mkdir -p /root/.config/rclone
 ```
@@ -1343,12 +1393,11 @@ type = s3
 provider = Cloudflare
 access_key_id = TON_ACCESS_KEY_ID
 secret_access_key = TA_SECRET_ACCESS_KEY
-endpoint = https://NUMERO_DE_COMPTE.r2.cloudflarestorage.com
-region = auto
+endpoint = https://NUMERO_DE_COMPTE.eu.r2.cloudflarestorage.com
 acl = private
 no_check_bucket = true
 ```
-- Avec la juridiction UE, l'endpoint contient `.eu.` : recopie-le exactement.
+- Recopie l'endpoint **exactement** (avec `.eu.` pour la juridiction UE).
 - **`no_check_bucket = true` est indispensable** : la clé n'a pas le droit de créer de bucket, et
   sans cette ligne, rclone essaie et se fait refuser (`403`).
 
@@ -1358,7 +1407,7 @@ sudo chmod 600 /root/.config/rclone/rclone.conf
 ```bash
 sudo rclone lsd r2:sauvegardes-serveur
 ```
-Pas d'erreur veut dire que l'accès marche.
+Aucun affichage et aucune erreur : l'accès marche (le bucket est vide).
 
 **La couche chiffrée :**
 ```bash
@@ -1370,9 +1419,11 @@ sudo rclone config
 | name | `r2chiffre` | |
 | Storage | `crypt` | |
 | remote | `r2:sauvegardes-serveur` | La couche chiffrée se pose sur le bucket |
-| filename_encryption | `standard` | Les noms de fichiers sont chiffrés |
-| directory_name_encryption | **`false`** | Les dossiers `auto/` et `archives/` restent lisibles, pour que le **verrou** les reconnaisse |
-| password / password2 | `g` (générer), `128` bits | Deux secrets aléatoires |
+| filename_encryption | `1` (standard) | Les noms de fichiers sont chiffrés |
+| directory_name_encryption | `2` (**false**) | Les dossiers `auto/` et `archives/` restent lisibles, pour que le **verrou** les reconnaisse |
+| password / password2 | `g` (générer), `1024` bits, `y` | Deux secrets aléatoires, le second sert de « sel » |
+| Edit advanced config? | `n` | |
+| Keep this remote? | `y`, puis `q` | |
 
 > ⚠️ **Note les deux mots de passe générés dans ton gestionnaire de mots de passe ET sur papier,
 > rangé hors de la maison du serveur.** Sans eux, les sauvegardes R2 sont **illisibles pour
@@ -1382,17 +1433,33 @@ sudo rclone config
 
 **Tester :**
 ```bash
-sudo rclone copy /etc/hostname r2chiffre:test/
+echo "bonjour" > /tmp/essai.txt
 ```
+```bash
+sudo rclone copy /tmp/essai.txt r2chiffre:test/ -vv
+```
+Attendu : `md5 = … OK` et `Copied`, **sans** ligne `ERROR`.
 ```bash
 sudo rclone ls r2chiffre:test/
 ```
-Avec `r2chiffre`, tu vois le vrai nom. Dans le tableau de bord R2, le nom est illisible.
+Avec `r2chiffre`, tu vois le vrai nom (`essai.txt`). Dans le tableau de bord R2, le dossier `test/`
+est lisible mais le fichier porte un **nom illisible** et pèse 48 octets de plus (l'en-tête du
+chiffrement) : c'est la preuve que Cloudflare ne voit rien.
 ```bash
-sudo rclone purge r2chiffre:test/
+sudo rclone purge r2:sauvegardes-serveur/test
+```
+```bash
+rm /tmp/essai.txt /tmp/rclone-current-linux-amd64.deb
 ```
 
-**Une archive à garder une seule fois** (un ancien site, par exemple) va dans `archives/` :
+> Le `purge` peut afficher `GetBucketVersioning … 403 AccessDenied` : c'est **normal**. rclone
+> demande si le versioning est activé, et le jeton n'a pas le droit de lire les réglages du
+> bucket (c'est voulu). Il continue et supprime quand même. Vérifie avec
+> `sudo rclone ls r2:sauvegardes-serveur` (aucun affichage = vide).
+{.is-info}
+
+**Une archive à garder une seule fois** (un ancien site, par exemple) va dans `archives/`, où le
+script ne touche jamais :
 ```bash
 sudo rclone copy /chemin/ancien-site-AAAA-MM-JJ.zip r2chiffre:archives/ --progress
 ```
@@ -1400,16 +1467,20 @@ sudo rclone copy /chemin/ancien-site-AAAA-MM-JJ.zip r2chiffre:archives/ --progre
 ### 18.4 Le script hors site
 ```bash
 #!/bin/bash
-# /scripts/sauvegarde-hors-site.sh (root:root, 700) — lancé chaque semaine par la crontab de root
+# /scripts/sauvegarde-hors-site.sh (root:root, 700)
+# Lancé tous les 3 mois par la crontab de root, ou à la main : sudo /bin/bash /scripts/sauvegarde-hors-site.sh
 umask 077
 set -u
 
 DATE=$(date +%Y-%m-%d)
+HEURE=$(date +%Y-%m-%d_%Hh%M)    # dans le nom : deux lancements le même jour ne se remplacent pas
 DISTANT="r2chiffre:auto"          # vue déchiffrée
 BUCKET="r2:sauvegardes-serveur"   # vue brute : taille réellement facturée
-GARDER=8                          # copies gardées par type
-SEUIL_GO=8                        # alerte au-delà (gratuit jusqu'à 10 Go)
-LOG="/home/admin/Partage/hors-site/log-${DATE}.txt"
+SITE_DIR="/home/admin/Partage/site/backup"   # où le script de sauvegarde du site range ses archives
+GARDER=2                          # copies gardées par type : la nouvelle + la précédente
+SEUIL_GO=8                        # e-mail « ATTENTION » au-delà
+PLAFOND_GO=9                      # limite STRICTE : au-delà, rien n'est envoyé (gratuit jusqu'à 10 Go)
+LOG="/home/admin/Partage/hors-site/log-${HEURE}.txt"
 
 # LISTE BLANCHE : seul ce qui est écrit ici part sur R2
 ELEMENTS=(
@@ -1420,7 +1491,7 @@ ELEMENTS=(
     scripts
     var/spool/cron/crontabs/root
 )
-EXCLUS=(--exclude=opt/gestionnaire-mdp/config/logs)
+EXCLUS=(--exclude=opt/gestionnaire-mdp/config/logs --exclude='*.avant')
 
 ETAPES=$(mktemp); TMP=$(mktemp -d)
 trap 'rm -rf "${TMP}" "${ETAPES}"' EXIT
@@ -1428,21 +1499,39 @@ ERREUR=""; ALERTE=""
 ok()    { echo "[OK]     $*" >> "${ETAPES}"; }
 echec() { echo "[ECHEC]  $*" >> "${ETAPES}"; [ -z "${ERREUR}" ] && ERREUR="$*"; }
 info()  { echo "         $*" >> "${ETAPES}"; }
+en_go() { awk -v o="$1" 'BEGIN { printf "%.2f", o / 1073741824 }'; }
 mkdir -p "$(dirname "${LOG}")"
 
-# 1. La dernière sauvegarde de base faite par l'application (plus sûre qu'une copie à chaud)
+# 1. La dernière archive du site (faite par son propre script de sauvegarde)
+SITE=$(ls -1t "${SITE_DIR}"/site-*.tar.gz 2>/dev/null | head -n 1)
+[ -n "${SITE}" ] && cp "${SITE}" "${TMP}/" && ok "Site : $(basename "${SITE}")" || echec "Pas d'archive du site"
+
+# 2. La dernière sauvegarde de base faite par l'application (plus sûre qu'une copie à chaud)
 BAK=$(ls -1t /opt/gestionnaire-mdp/backups/* 2>/dev/null | head -n 1)
 [ -n "${BAK}" ] && ELEMENTS+=("${BAK#/}") || echec "Pas de sauvegarde de base"
 
 # On ignore ce qui n'existe plus, en le signalant
 PRESENTS=(); for e in "${ELEMENTS[@]}"; do [ -e "/${e}" ] && PRESENTS+=("${e}") || info "Absent : /${e}"; done
 
-# 2. L'archive : tar 0 = parfait, 1 = fichier modifié pendant la lecture (normal), 2 = erreur
-ARCHIVE="${TMP}/essentiel-${DATE}.tar.gz"
+# 3. L'archive : tar 0 = parfait, 1 = fichier modifié pendant la lecture (normal), 2 = erreur
+ARCHIVE="${TMP}/essentiel-${HEURE}.tar.gz"
 tar -czf "${ARCHIVE}" "${EXCLUS[@]}" -C / "${PRESENTS[@]}" 2> "${TMP}/tar.err"; CODE=$?
 if [ "${CODE}" -le 1 ] && tar -tzf "${ARCHIVE}" > /dev/null 2>&1; then ok "Archive vérifiée"; else echec "Archive (code ${CODE})"; fi
 
-# 3. Envoi chiffré, puis vérification que R2 contient exactement la même chose
+# 4. Le plafond : déjà sur R2 + à envoyer. Au-delà de PLAFOND_GO : on n'envoie RIEN, on ne supprime rien.
+if [ -z "${ERREUR}" ]; then
+    DEJA=$(rclone size "${BUCKET}" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2)
+    NOUVEAU=$(du -sb --exclude='*.err' "${TMP}" | cut -f1)
+    if [ -z "${DEJA}" ]; then
+        echec "Espace R2 impossible à mesurer : envoi annulé par prudence"
+    elif awk -v d="${DEJA}" -v n="${NOUVEAU}" -v p="${PLAFOND_GO}" 'BEGIN { exit !(d + n > p * 1073741824) }'; then
+        echec "Envoi annulé : R2 dépasserait ${PLAFOND_GO} Go ($(en_go "${DEJA}") déjà + $(en_go "${NOUVEAU}") à envoyer)"
+    else
+        ok "Plafond : $(en_go "${DEJA}") Go déjà + $(en_go "${NOUVEAU}") Go à envoyer (limite ${PLAFOND_GO} Go)"
+    fi
+fi
+
+# 5. Envoi chiffré, puis vérification que R2 contient exactement la même chose
 if [ -z "${ERREUR}" ]; then
     rclone copy "${TMP}" "${DISTANT}" --exclude '*.err' && ok "Envoi" || echec "Envoi"
 fi
@@ -1450,19 +1539,30 @@ if [ -z "${ERREUR}" ]; then
     rclone cryptcheck "${TMP}" "${DISTANT}" --one-way --exclude '*.err' >/dev/null 2>&1 && ok "cryptcheck" || echec "cryptcheck"
 fi
 
-# 4. Rotation : seulement après un envoi réussi. Si le serveur meurt, plus rien n'est supprimé.
+# 6. Rotation : seulement après un envoi réussi. Si le serveur meurt, plus rien n'est supprimé.
 if [ -z "${ERREUR}" ]; then
-    rclone lsf "${DISTANT}" --files-only --include "essentiel-*.tar.gz" | sort | head -n -"${GARDER}" |
-    while read -r f; do rclone deletefile "${DISTANT}/${f}" && info "Supprimée : ${f}" || info "Verrouillée : ${f}"; done
+    for motif in "essentiel-*.tar.gz" "site-*.tar.gz"; do
+        rclone lsf "${DISTANT}" --files-only --include "${motif}" | sort | head -n -"${GARDER}" |
+        while read -r f; do
+            rclone deletefile "${DISTANT}/${f}" 2>/dev/null && info "Supprimée : ${f}" || info "Verrouillée (< 90 jours), gardée : ${f}"
+        done
+    done
 fi
 
-# 5. L'espace utilisé, comparé au seuil
+# 7. L'espace utilisé, comparé au seuil d'alerte
 OCTETS=$(rclone size "${BUCKET}" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2)
 if [ -n "${OCTETS}" ] && awk -v o="${OCTETS}" -v s="${SEUIL_GO}" 'BEGIN { exit !(o > s * 1073741824) }'; then
-    ALERTE="ATTENTION : plus de ${SEUIL_GO} Go sur R2"; info "${ALERTE} → alléger ELEMENTS ou baisser GARDER"
+    ALERTE="ATTENTION : $(en_go "${OCTETS}") Go sur R2"; info "${ALERTE} → alléger ELEMENTS ou baisser GARDER"
+elif [ -n "${OCTETS}" ]; then
+    ok "Espace R2 : $(en_go "${OCTETS}") Go utilisés"
 fi
 
-# 6. Journal et e-mail, dans tous les cas
+# 8. rclone est-il à jour ? On VÉRIFIE seulement : la mise à jour se fait à la main.
+DERNIERE=$(rclone version --check 2>/dev/null | awk '/^latest:/ { print $2 }')
+ACTUELLE=$(rclone version --check 2>/dev/null | awk '/^yours:/ { print $2 }')
+[ -n "${DERNIERE}" ] && [ "${ACTUELLE}" != "${DERNIERE}" ] && info "rclone ${ACTUELLE} : la version ${DERNIERE} est disponible"
+
+# 9. Journal et e-mail, dans tous les cas
 if [ -n "${ERREUR}" ]; then SUJET="Hors site : ECHEC - ${DATE}"
 elif [ -n "${ALERTE}" ]; then SUJET="Hors site : OK mais ATTENTION ESPACE - ${DATE}"
 else SUJET="Hors site : OK - ${DATE}"; fi
@@ -1473,30 +1573,52 @@ mail -s "${SUJET}" admin@example.com < "${LOG}"
 | Choix | Pourquoi |
 |---|---|
 | `umask 077`, `mktemp`, `trap` | Rien n'est lisible par d'autres, rien ne traîne dans `/tmp` |
+| L'archive du site **réutilisée** | Le site a déjà son propre script de sauvegarde : on envoie sa dernière archive au lieu de la refaire |
 | La sauvegarde **faite par l'application** | Cohérente, et bien plus petite que la base vivante |
 | `tar` code 1 accepté | Des applications qui tournent modifient des fichiers pendant la lecture : c'est normal |
+| **Plafond vérifié avant l'envoi** | Même avec plusieurs lancements à la main (dont les copies récentes sont protégées par le verrou et s'accumulent), le stockage ne dépasse jamais 9 Go |
 | `rclone cryptcheck` | Compare les originaux avec les versions chiffrées sur R2, sans tout retélécharger |
 | **Rotation dans le script, après un envoi réussi** | Si le serveur tombe en panne, les dernières copies restent **indéfiniment** sur R2 |
-| Les noms contiennent la date (`AAAA-MM-JJ`) | Le tri alphabétique est aussi chronologique |
-| Le **verrou** de 30 jours | La rotation, qui supprime des copies de plus de 8 semaines, n'est jamais gênée par le verrou. Un attaquant, si. |
-| Seuil d'alerte à 8 Go | L'e-mail prévient **avant** de payer, avec quoi alléger |
+| Les noms contiennent la date et l'heure | Le tri alphabétique est chronologique, et deux lancements le même jour ne s'écrasent pas (le verrou refuserait de toute façon de remplacer) |
+| Copie refusée par le verrou → « gardée » | Ce n'est pas une erreur : elle sera supprimée à un prochain lancement, quand elle aura plus de 90 jours |
+| Vérification de version, sans mise à jour | Prévient qu'il existe une nouvelle version, sans risquer de casser la sauvegarde |
+
+> **E-mail en couleurs (optionnel).** Pour voir `[OK]` en vert, les erreurs en rouge et
+> `ATTENTION` en orange, on envoie le journal en HTML : on l'entoure de `<pre>`, on échappe
+> `& < >` avec `sed`, puis on colore les débuts de ligne. On ajoute à `mail` les en-têtes
+> `-a "MIME-Version: 1.0" -a "Content-Type: text/html; charset=UTF-8"`. Le journal sur le disque
+> reste en texte simple. Si l'e-mail arrive vide ou avec des balises visibles, il suffit de retirer
+> ces deux en-têtes pour revenir au texte simple.
+{.is-info}
 
 ### 18.5 Installer, planifier, tester
 ```bash
 bash -n ~/sauvegarde-hors-site.sh
 ```
+Aucun affichage : la syntaxe est bonne.
 ```bash
 sudo install -m 700 -o root -g root ~/sauvegarde-hors-site.sh /scripts/sauvegarde-hors-site.sh
 ```
 ```bash
-sudo /scripts/sauvegarde-hors-site.sh
+sudo /bin/bash /scripts/sauvegarde-hors-site.sh
 ```
-Dans la crontab de root (`sudo crontab -e`), décalée par rapport aux autres sauvegardes :
+L'e-mail doit lister, chacune en `[OK]` : le site, l'archive vérifiée, le plafond, l'envoi, le
+cryptcheck et l'espace utilisé. Premier envoi constaté : environ **0,17 Go en 14 secondes**.
+
+**Tous les 3 mois**, dans la crontab de root :
+```bash
+sudo env EDITOR=vi crontab -e
 ```
-30 4 * * 0 /scripts/sauvegarde-hors-site.sh
 ```
+30 4 1 1,4,7,10 * /scripts/sauvegarde-hors-site.sh
+```
+Soit : 4 h 30, le 1er janvier, avril, juillet et octobre. Rien n'empêche de le lancer aussi à la
+main entre deux, par exemple après un gros changement.
 
 **Tester une restauration**, sinon on ne sait pas si la sauvegarde sert à quelque chose :
+```bash
+sudo mkdir -p /tmp/test-r2
+```
 ```bash
 sudo rclone copy r2chiffre:auto/ /tmp/test-r2/ --include "essentiel-*"
 ```
@@ -1506,12 +1628,22 @@ sudo tar -tzf /tmp/test-r2/essentiel-*.tar.gz | head -20
 ```bash
 sudo rm -rf /tmp/test-r2
 ```
-Le jour où tu en as besoin, sur une machine neuve : installe rclone, recrée `rclone.conf` avec les
-clés et les **deux mots de passe crypt** (gardés sur papier), puis `rclone copy`, puis
-`tar -xzf … -C /`.
+Le jour où tu en as besoin, sur une machine neuve : installe rclone (version officielle), recrée
+`rclone.conf` avec les clés et les **deux mots de passe crypt** (gardés sur papier), puis
+`rclone copy`, puis `tar -xzf … -C /`.
 
-**Retour arrière :** retirer la ligne de la crontab, puis supprimer le jeton et le bucket. Les
-copies verrouillées ne pourront être supprimées qu'à la fin de leur rétention.
+### 18.6 Ce qu'on voit dans le tableau de bord R2
+
+| Ce que tu vois | Pourquoi |
+|---|---|
+| `auto/` lisible, mais des fichiers aux noms comme `k3v9q0x7m2…` | Le chiffrement : `directory_name_encryption = false` laisse les dossiers lisibles (pour le verrou), mais les **noms** et le **contenu** des fichiers sont chiffrés. Pour voir les vrais noms : `sudo rclone ls r2chiffre:auto/` |
+| Taille un peu plus grande que dans l'e-mail (79,33 MB contre 75,6 Mo) | Cloudflare compte en **MB** (1 000 000 octets), le script en **Mo** de 1 048 576 octets. Le chiffrement ajoute aussi quelques octets |
+| « Taille du compartiment : 0 B » juste après l'envoi | Les statistiques du tableau de bord se mettent à jour avec **quelques heures de retard** |
+| Type `application/octet-stream` | Normal : pour Cloudflare, un fichier chiffré n'est qu'une suite d'octets |
+
+**Retour arrière :** retirer la ligne de la crontab, puis supprimer le script, le jeton et le
+bucket. Les copies verrouillées ne pourront être supprimées qu'à la fin de leur rétention.
+
 
 ### Pour aller plus loin
 - **VPN WireGuard** (souvent intégré à la box) pour fermer le port SSH.
