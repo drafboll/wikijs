@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8430ce"></path></marker></defs>
+  <rect width="980" height="420" fill="#ffffff"></rect>
+  <text x="490" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Le déploiement de la VCSA en deux étapes</text>
+  <g font-size="13">
+    
+    <rect x="30" y="70" width="200" height="300" rx="10" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="130" y="96" text-anchor="middle" font-weight="700" fill="#3c4043">Ton PC Windows</text>
+    <text x="130" y="118" text-anchor="middle" font-size="12" fill="#3c4043">ISO VCSA montée</text>
+    <text x="130" y="136" text-anchor="middle" font-family="Consolas, monospace" font-size="11" fill="#3c4043">vcsa-ui-installer\</text>
+    <text x="130" y="152" text-anchor="middle" font-family="Consolas, monospace" font-size="11" fill="#3c4043">win32\installer.exe</text>
+    <text x="130" y="190" text-anchor="middle" font-size="12" fill="#3c4043">L'assistant pousse</text>
+    <text x="130" y="206" text-anchor="middle" font-size="12" fill="#3c4043">l'appliance (OVA)</text>
+    <text x="130" y="222" text-anchor="middle" font-size="12" fill="#3c4043">vers esx01</text>
+    <line x1="230" y1="215" x2="285" y2="215" stroke="#8430ce" stroke-width="3" marker-end="url(#a)"></line>
+    
+    <rect x="290" y="70" width="320" height="300" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+    <text x="450" y="96" text-anchor="middle" font-weight="700" font-size="15" fill="#5b1e8a">Stage 1 : Deploy</text>
+    <text x="450" y="114" text-anchor="middle" font-size="12" fill="#5b1e8a">copie et démarrage de la VM</text>
+    <g fill="#3c4043" font-size="12">
+      <text x="310" y="142">1. Cible : esx01 (192.168.50.11), root</text>
+      <text x="310" y="164">2. Nom de VM : vcsa01, mot de passe root</text>
+      <text x="310" y="186">3. Taille : Tiny · stockage : Default</text>
+      <text x="310" y="208">4. Datastore : ds-esx01 · ☑ thin disk</text>
+      <text x="310" y="230">5. Réseau : VM Network · IPv4 statique</text>
+      <text x="322" y="248">FQDN vcsa01.SRV-GRP3.lan</text>
+      <text x="322" y="266">IP 192.168.50.12 /24 · GW .2</text>
+      <text x="322" y="284">DNS 192.168.50.10</text>
+      <text x="310" y="306">6. Résumé ➜ Finish</text>
+      <text x="310" y="336" font-weight="700" fill="#5b1e8a">⏱ 15 à 40 min en nested</text>
+    </g>
+    <line x1="610" y1="215" x2="665" y2="215" stroke="#8430ce" stroke-width="3" marker-end="url(#a)"></line>
+    
+    <rect x="670" y="70" width="280" height="300" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="810" y="96" text-anchor="middle" font-weight="700" font-size="15" fill="#0d652d">Stage 2 : Set up</text>
+    <text x="810" y="114" text-anchor="middle" font-size="12" fill="#0d652d">configuration des services</text>
+    <g fill="#3c4043" font-size="12">
+      <text x="690" y="142">1. Synchro de l'heure :</text>
+      <text x="702" y="160">NTP 192.168.50.10</text>
+      <text x="690" y="182">2. SSH : activé (pratique en lab)</text>
+      <text x="690" y="204">3. Domaine SSO :</text>
+      <text x="702" y="222" font-family="Consolas, monospace">vsphere.local</text>
+      <text x="702" y="240">+ mot de passe administrator</text>
+      <text x="690" y="262">4. CEIP : au choix</text>
+      <text x="690" y="284">5. Finish</text>
+      <text x="690" y="314" font-weight="700" fill="#0d652d">✓ https://vcsa01.SRV-GRP3.lan/ui</text>
+      <text x="690" y="336" font-weight="700" fill="#0d652d">⏱ 20 à 60 min en nested</text>
+    </g>
+  </g>
+  <rect x="30" y="382" width="920" height="30" rx="6" fill="#fce8e6" stroke="#d93025"></rect>
+  <text x="490" y="402" text-anchor="middle" font-size="13" fill="#a50e0e">⚠ Créer les enregistrements DNS A + PTR de vcsa01 AVANT le stage 1. Le nom choisi ne pourra plus être changé facilement.</text>
+</svg>
