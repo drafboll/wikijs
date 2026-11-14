@@ -2,7 +2,7 @@
 title: Sécuriser un serveur Ubuntu auto-hébergé derrière Cloudflare
 description: 
 published: 1
-date: 2026-11-14T19:27:59.382Z
+date: 2026-11-14T19:33:25.839Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-12T01:30:00.938Z
@@ -1467,230 +1467,110 @@ sudo rclone copy /chemin/ancien-site-AAAA-MM-JJ.zip r2chiffre:archives/ --progre
 ### 18.4 Le script hors site
 ```bash
 #!/bin/bash
+# /scripts/sauvegarde-hors-site.sh (root:root, 700)
+# Lancé tous les 3 mois par la crontab de root, ou à la main : sudo /bin/bash /scripts/sauvegarde-hors-site.sh
 umask 077
 set -u
 
 DATE=$(date +%Y-%m-%d)
-HEURE=$(date +%Y-%m-%d_%Hh%M)   # dans le nom de l'archive : deux lancements le même jour ne se remplacent pas
-DEBUT=$(date +%s)
-DISTANT="r2chiffre:auto"
-BW="/opt/bitwarden/bwdata"
-SITE_DIR="/home/alexandre/Partage/alexandre-faye-3d/backup"
-LOG_DIR="/home/alexandre/Partage/hors-site"
-LOG_FILE="${LOG_DIR}/log-hors-site-$(date +%Y-%m-%d_%Hh%M).txt"
-DESTINATAIRE="afaye5500@gmail.com"
-EXPEDITEUR="pro@alexandre-faye.fr"   # adresse acceptée par le relais OVH
-PROPRIETAIRE="alexandre"
-GARDER=2                             # copies gardées sur R2 pour chaque type (la nouvelle + la précédente)
-BUCKET="r2:sauvegardes-mini"         # le bucket brut (taille réelle facturée, chiffrement compris)
-SEUIL_GO=8                           # au-delà : e-mail « ATTENTION » (le gratuit s'arrête à 10 Go)
-PLAFOND_GO=9                         # limite STRICTE : si l'envoi ferait dépasser 9 Go, rien n'est envoyé
+HEURE=$(date +%Y-%m-%d_%Hh%M)    # dans le nom : deux lancements le même jour ne se remplacent pas
+DISTANT="r2chiffre:auto"          # vue déchiffrée
+BUCKET="r2:sauvegardes-serveur"   # vue brute : taille réellement facturée
+SITE_DIR="/home/admin/Partage/site/backup"   # où le script de sauvegarde du site range ses archives
+GARDER=2                          # copies gardées par type : la nouvelle + la précédente
+SEUIL_GO=8                        # e-mail « ATTENTION » au-delà
+PLAFOND_GO=9                      # limite STRICTE : au-delà, rien n'est envoyé (gratuit jusqu'à 10 Go)
+LOG="/home/admin/Partage/hors-site/log-${HEURE}.txt"
 
-# Ce que contient l'archive « essentiel » (chemins sans « / » au début : on archive depuis /)
-# LISTE BLANCHE : seul ce qui est écrit ici part sur R2. Un nouveau dossier dans /docker
-# n'est JAMAIS envoyé tant qu'on ne l'ajoute pas ici à la main (ex. : docker/nouvelle-appli).
+# LISTE BLANCHE : seul ce qui est écrit ici part sur R2
 ELEMENTS=(
-    # Bitwarden : tout bwdata sauf la base vivante et les journaux (voir EXCLUS),
-    # la dernière sauvegarde de base est ajoutée plus bas
-    opt/bitwarden/bwdata
-    # Applications Docker importantes
-    docker/portainer
-    docker/wiki
-    docker/multimedia
-    "docker/plex/config/Library/Application Support/Plex Media Server/Preferences.xml"
-    # Configuration du serveur : de quoi tout reconstruire
-    etc/apache2
-    etc/alexandre-faye-3d
-    etc/samba/smb.conf
-    etc/ssh/sshd_config.d
-    etc/fail2ban/jail.d
-    etc/ufw
-    etc/fstab
+    srv/docker/portainer
+    srv/docker/wiki
+    opt/gestionnaire-mdp/config
+    etc/apache2 etc/samba/smb.conf etc/ssh/sshd_config.d etc/fail2ban/jail.d etc/ufw etc/fstab
     scripts
     var/spool/cron/crontabs/root
 )
-EXCLUS=(
-    --exclude=opt/bitwarden/bwdata/mssql/data
-    --exclude=opt/bitwarden/bwdata/mssql/backups
-    --exclude=opt/bitwarden/bwdata/logs
-    --exclude='*.avant'
-)
+EXCLUS=(--exclude=opt/gestionnaire-mdp/config/logs --exclude='*.avant')
 
-ETAPES=$(mktemp)
-TMP=$(mktemp -d)
+ETAPES=$(mktemp); TMP=$(mktemp -d)
 trap 'rm -rf "${TMP}" "${ETAPES}"' EXIT
-ERREUR=""
+ERREUR=""; ALERTE=""
 ok()    { echo "[OK]     $*" >> "${ETAPES}"; }
-echec() { echo "[ERREUR] $*" >> "${ETAPES}"; [ -z "${ERREUR}" ] && ERREUR="$*"; }
+echec() { echo "[ECHEC]  $*" >> "${ETAPES}"; [ -z "${ERREUR}" ] && ERREUR="$*"; }
 info()  { echo "         $*" >> "${ETAPES}"; }
+en_go() { awk -v o="$1" 'BEGIN { printf "%.2f", o / 1073741824 }'; }
+mkdir -p "$(dirname "${LOG}")"
 
-mkdir -p "${LOG_DIR}"
-
-# 1. La dernière archive du site 3D
-SITE=$(ls -1t "${SITE_DIR}"/alexandre-faye-3d-*.tar.gz 2>/dev/null | head -n 1)
-#    Si cette archive est déjà sur R2 (le site n'a pas été resauvegardé depuis le dernier envoi),
-#    on ne la renvoie pas : le verrou interdit de la remplacer, et ce serait une copie identique.
+# 1. La dernière archive du site (faite par son propre script de sauvegarde)
+SITE=$(ls -1t "${SITE_DIR}"/site-*.tar.gz 2>/dev/null | head -n 1)
 if [ -n "${SITE}" ] && [ -n "$(rclone lsf "${DISTANT}" --files-only --include "$(basename "${SITE}")" 2>/dev/null)" ]; then
-    ok "Site 3D : $(basename "${SITE}") déjà sur R2, pas renvoyée"
-elif [ -n "${SITE}" ]; then
-    cp -p "${SITE}" "${TMP}/" && ok "Site 3D : $(basename "${SITE}") ($(du -h "${SITE}" | cut -f1))"
-else
-    echec "Aucune archive du site 3D dans ${SITE_DIR}"
-fi
+    ok "Site : $(basename "${SITE}") déjà sur R2, pas renvoyée"   # le verrou interdirait de la remplacer
+elif [ -n "${SITE}" ]; then cp -p "${SITE}" "${TMP}/" && ok "Site : $(basename "${SITE}")"
+else echec "Pas d'archive du site"; fi
 
-# 2. La dernière sauvegarde de base faite par Bitwarden (chaque nuit, dans mssql/backups)
-BAK=$(ls -1t "${BW}"/mssql/backups/* 2>/dev/null | head -n 1)
-if [ -n "${BAK}" ]; then
-    ELEMENTS+=("${BAK#/}")
-    info "Base Bitwarden : $(basename "${BAK}") du $(date -r "${BAK}" '+%d/%m/%Y %H:%M')"
-else
-    echec "Aucune sauvegarde de base Bitwarden dans ${BW}/mssql/backups"
-fi
+# 2. La dernière sauvegarde de base faite par l'application (plus sûre qu'une copie à chaud)
+BAK=$(ls -1t /opt/gestionnaire-mdp/backups/* 2>/dev/null | head -n 1)
+[ -n "${BAK}" ] && ELEMENTS+=("${BAK#/}") || echec "Pas de sauvegarde de base"
 
-# On ne garde que les éléments qui existent (un oubli ne doit pas bloquer tout le reste)
-PRESENTS=()
-for e in "${ELEMENTS[@]}"; do
-    if [ -e "/${e}" ]; then PRESENTS+=("${e}"); else info "Absent, ignoré : /${e}"; fi
-done
+# On ignore ce qui n'existe plus, en le signalant
+PRESENTS=(); for e in "${ELEMENTS[@]}"; do [ -e "/${e}" ] && PRESENTS+=("${e}") || info "Absent : /${e}"; done
 
-# 3. L'archive « essentiel ». tar : code 0 = parfait, 1 = un fichier a changé pendant la
-#    lecture (normal pour des applications qui tournent), 2 = vraie erreur.
-ESSENTIEL="${TMP}/essentiel-${HEURE}.tar.gz"
-tar -czf "${ESSENTIEL}" "${EXCLUS[@]}" -C / "${PRESENTS[@]}" 2> "${TMP}/tar.err"
-CODE=$?
-if [ "${CODE}" -le 1 ] && tar -tzf "${ESSENTIEL}" > /dev/null 2>&1; then
-    ok "Archive essentiel : $(du -h "${ESSENTIEL}" | cut -f1), vérifiée (tar -tzf)"
-    [ "${CODE}" -eq 1 ] && info "(fichiers modifiés pendant la lecture : normal, applications actives)"
-else
-    echec "Archive essentiel (code ${CODE})"
-    sed 's/^/         tar : /' "${TMP}/tar.err" | head -n 20 >> "${ETAPES}"
-fi
+# 3. L'archive : tar 0 = parfait, 1 = fichier modifié pendant la lecture (normal), 2 = erreur
+ARCHIVE="${TMP}/essentiel-${HEURE}.tar.gz"
+tar -czf "${ARCHIVE}" "${EXCLUS[@]}" -C / "${PRESENTS[@]}" 2> "${TMP}/tar.err"; CODE=$?
+if [ "${CODE}" -le 1 ] && tar -tzf "${ARCHIVE}" > /dev/null 2>&1; then ok "Archive vérifiée"; else echec "Archive (code ${CODE})"; fi
 
-# 3 bis. Le plafond : on mesure ce qui est déjà sur R2 + ce qu'on va envoyer. Si le total
-#        dépasse PLAFOND_GO, on n'envoie RIEN (et on ne supprime rien) : on est prévenu par
-#        e-mail, et on fait de la place à la main. Le stockage ne peut donc jamais dépasser 9 Go.
+# 4. Le plafond : déjà sur R2 + à envoyer. Au-delà de PLAFOND_GO : on n'envoie RIEN, on ne supprime rien.
 if [ -z "${ERREUR}" ]; then
     DEJA=$(rclone size "${BUCKET}" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2)
     NOUVEAU=$(du -sb --exclude='*.err' "${TMP}" | cut -f1)
     if [ -z "${DEJA}" ]; then
-        echec "Impossible de mesurer l'espace R2 avant l'envoi : envoi annulé par prudence"
+        echec "Espace R2 impossible à mesurer : envoi annulé par prudence"
     elif awk -v d="${DEJA}" -v n="${NOUVEAU}" -v p="${PLAFOND_GO}" 'BEGIN { exit !(d + n > p * 1073741824) }'; then
-        echec "Envoi annulé : R2 dépasserait ${PLAFOND_GO} Go ($(awk -v d="${DEJA}" -v n="${NOUVEAU}" 'BEGIN { printf "%.2f Go déjà + %.2f Go à envoyer", d/1073741824, n/1073741824 }'))"
-        info "→ supprimer une ancienne copie de plus de 90 jours, ou retirer un dossier de ELEMENTS."
+        echec "Envoi annulé : R2 dépasserait ${PLAFOND_GO} Go ($(en_go "${DEJA}") déjà + $(en_go "${NOUVEAU}") à envoyer)"
     else
-        ok "Plafond : $(awk -v d="${DEJA}" -v n="${NOUVEAU}" 'BEGIN { printf "%.2f Go déjà + %.2f Go à envoyer", d/1073741824, n/1073741824 }') (limite ${PLAFOND_GO} Go)"
+        ok "Plafond : $(en_go "${DEJA}") Go déjà + $(en_go "${NOUVEAU}") Go à envoyer (limite ${PLAFOND_GO} Go)"
     fi
 fi
 
-# 4. L'envoi chiffré vers R2, puis la vérification des fichiers envoyés (cryptcheck)
+# 5. Envoi chiffré, puis vérification que R2 contient exactement la même chose
 if [ -z "${ERREUR}" ]; then
-    # --ignore-existing : un fichier du même nom déjà sur R2 n'est jamais remplacé (le verrou
-    # le refuserait de toute façon ; les noms contiennent la date, donc un nouveau fichier a
-    # toujours un nouveau nom)
-    if rclone copy "${TMP}" "${DISTANT}" --ignore-existing --exclude '*.err' --exclude 'mail.html' 2> "${TMP}/rclone.err"; then
-        ok "Envoi vers ${DISTANT}"
-        if rclone cryptcheck "${TMP}" "${DISTANT}" --one-way --exclude '*.err' > /dev/null 2>> "${TMP}/rclone.err"; then
-            ok "Vérification R2 (cryptcheck) : fichiers identiques"
-        else
-            echec "Vérification R2 (cryptcheck)"
-        fi
-    else
-        echec "Envoi vers ${DISTANT}"
-    fi
-    [ -n "${ERREUR}" ] && sed 's/^/         rclone : /' "${TMP}/rclone.err" | tail -n 15 >> "${ETAPES}"
+    rclone copy "${TMP}" "${DISTANT}" --ignore-existing --exclude '*.err' && ok "Envoi" || echec "Envoi"
+fi
+if [ -z "${ERREUR}" ]; then
+    rclone cryptcheck "${TMP}" "${DISTANT}" --one-way --exclude '*.err' >/dev/null 2>&1 && ok "cryptcheck" || echec "cryptcheck"
 fi
 
-# 5. Rotation sur R2 : seulement si tout a réussi. On garde les ${GARDER} plus récentes de
-#    chaque type (les noms contiennent la date, donc le tri alphabétique est chronologique).
+# 6. Rotation : seulement après un envoi réussi. Si le serveur meurt, plus rien n'est supprimé.
 if [ -z "${ERREUR}" ]; then
-    for motif in "essentiel-*.tar.gz" "alexandre-faye-3d-*.tar.gz"; do
-        rclone lsf "${DISTANT}" --files-only --include "${motif}" 2>/dev/null | sort | head -n -"${GARDER}" |
+    for motif in "essentiel-*.tar.gz" "site-*.tar.gz"; do
+        rclone lsf "${DISTANT}" --files-only --include "${motif}" | sort | head -n -"${GARDER}" |
         while read -r f; do
-            if rclone deletefile "${DISTANT}/${f}" 2>/dev/null; then
-                info "R2 : ancienne copie supprimée : ${f}"
-            else
-                info "R2 : ${f} non supprimée (protégée par le verrou de 90 jours), sera retentée au prochain lancement"
-            fi
+            rclone deletefile "${DISTANT}/${f}" 2>/dev/null && info "Supprimée : ${f}" || info "Verrouillée (< 90 jours), gardée : ${f}"
         done
     done
-    ok "Rotation R2 : ${GARDER} copies gardées par type"
-else
-    info "Rotation R2 non faite à cause de l'erreur : toutes les anciennes copies sont gardées."
 fi
 
-# 6. L'espace utilisé sur R2 (tout le bucket, après rotation), comparé au seuil
-ALERTE=""
+# 7. L'espace utilisé, comparé au seuil d'alerte
 OCTETS=$(rclone size "${BUCKET}" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2)
-if [ -n "${OCTETS}" ]; then
-    UTILISE=$(awk -v o="${OCTETS}" 'BEGIN { printf "%.2f", o / 1073741824 }')
-    if awk -v o="${OCTETS}" -v s="${SEUIL_GO}" 'BEGIN { exit !(o > s * 1073741824) }'; then
-        ALERTE="ATTENTION : ${UTILISE} Go utilisés sur R2 (seuil ${SEUIL_GO} Go, gratuit jusqu'à 10 Go)"
-        info "${ALERTE}"
-        info "→ retirer un dossier de la liste ELEMENTS, ou baisser GARDER (copies gardées)."
-    else
-        ok "Espace R2 : ${UTILISE} Go utilisés (seuil d'alerte ${SEUIL_GO} Go)"
-    fi
-else
-    info "Espace R2 : impossible à mesurer (rclone size)"
+if [ -n "${OCTETS}" ] && awk -v o="${OCTETS}" -v s="${SEUIL_GO}" 'BEGIN { exit !(o > s * 1073741824) }'; then
+    ALERTE="ATTENTION : $(en_go "${OCTETS}") Go sur R2"; info "${ALERTE} → alléger ELEMENTS ou baisser GARDER"
+elif [ -n "${OCTETS}" ]; then
+    ok "Espace R2 : $(en_go "${OCTETS}") Go utilisés"
 fi
 
-# 6 bis. rclone est-il à jour ? On VÉRIFIE seulement (rien n'est téléchargé ni installé) :
-#        la mise à jour se fait à la main, quand on a le temps de tester (voir le wiki 05).
-VERSIONS=$(rclone version --check 2>/dev/null)
-ACTUELLE=$(echo "${VERSIONS}" | awk '/^yours:/ { print $2 }')
-DERNIERE=$(echo "${VERSIONS}" | awk '/^latest:/ { print $2 }')
-if [ -z "${DERNIERE}" ]; then
-    info "rclone ${ACTUELLE:-?} : dernière version impossible à vérifier"
-elif [ "${ACTUELLE}" = "${DERNIERE}" ]; then
-    ok "rclone ${ACTUELLE} : à jour"
-else
-    info "rclone ${ACTUELLE} : la version ${DERNIERE} est disponible (mise à jour à la main, voir wiki 05)"
-fi
+# 8. rclone est-il à jour ? On VÉRIFIE seulement : la mise à jour se fait à la main.
+DERNIERE=$(rclone version --check 2>/dev/null | awk '/^latest:/ { print $2 }')
+ACTUELLE=$(rclone version --check 2>/dev/null | awk '/^yours:/ { print $2 }')
+[ -n "${DERNIERE}" ] && [ "${ACTUELLE}" != "${DERNIERE}" ] && info "rclone ${ACTUELLE} : la version ${DERNIERE} est disponible"
 
-# 7. Le journal et l'e-mail, dans les deux cas
-DUREE=$(( $(date +%s) - DEBUT ))
-if [ -n "${ERREUR}" ]; then
-    RESULTAT="ÉCHEC - ${ERREUR}"; SUJET="Sauvegarde hors site : ECHEC - ${DATE}"
-elif [ -n "${ALERTE}" ]; then
-    RESULTAT="RÉUSSIE, mais ${ALERTE}"; SUJET="Sauvegarde hors site : OK mais ATTENTION ESPACE R2 - ${DATE}"
-else
-    RESULTAT="RÉUSSIE"; SUJET="Sauvegarde hors site : OK - ${DATE}"
-fi
-{
-    echo "Sauvegarde hors site (Cloudflare R2, chiffrée)"
-    echo "=============================================="
-    echo "Résultat : ${RESULTAT}"
-    echo "Date     : $(date -d "@${DEBUT}" '+%d/%m/%Y à %H:%M:%S')"
-    echo "Durée    : ${DUREE} s"
-    echo ""
-    echo "Étapes"
-    echo "------"
-    cat "${ETAPES}"
-    echo ""
-    echo "Contenu de ${DISTANT} (noms et tailles déchiffrés)"
-    echo "-------------------------------------------------"
-    rclone lsl "${DISTANT}" 2>/dev/null | sort -k2 | awk '{ printf "    %8.1f Mo  %s %s\n", $1/1048576, $2, $4 }'
-} > "${LOG_FILE}"
-chown -R "${PROPRIETAIRE}:${PROPRIETAIRE}" "${LOG_DIR}"
-
-# L'e-mail est la version HTML du journal : mêmes lignes, avec [OK] en vert, [ERREUR] en rouge
-# et ATTENTION en orange (le journal sur le disque reste en texte simple).
-# sed : d'abord échapper & < > (pour que le HTML reste du texte), puis colorer.
-HTML="${TMP}/mail.html"
-{
-    echo '<html><body><pre style="font-family:Consolas,Menlo,monospace;font-size:13px;line-height:1.5">'
-    sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' \
-        -e 's|^\[OK\]|<b style="color:#1a7f37">[OK]</b>|' \
-        -e 's|^\[ERREUR\]\(.*\)$|<b style="color:#d1242f">[ERREUR]\1</b>|' \
-        -e 's|^Résultat : RÉUSSIE$|<b style="color:#1a7f37">&</b>|' \
-        -e 's|^Résultat : ÉCHEC.*$|<b style="color:#d1242f">&</b>|' \
-        -e '/<b /!s|^.*ATTENTION.*$|<b style="color:#bf6a02">&</b>|' \
-        "${LOG_FILE}"
-    echo '</pre></body></html>'
-} > "${HTML}"
-mail -s "${SUJET}" -a "From: ${EXPEDITEUR}" -a "MIME-Version: 1.0" \
-     -a "Content-Type: text/html; charset=UTF-8" "${DESTINATAIRE}" < "${HTML}"
-
+# 9. Journal et e-mail, dans tous les cas
+if [ -n "${ERREUR}" ]; then SUJET="Hors site : ECHEC - ${DATE}"
+elif [ -n "${ALERTE}" ]; then SUJET="Hors site : OK mais ATTENTION ESPACE - ${DATE}"
+else SUJET="Hors site : OK - ${DATE}"; fi
+{ echo "${SUJET}"; cat "${ETAPES}"; echo; rclone lsl "${DISTANT}" 2>/dev/null; } > "${LOG}"
+mail -s "${SUJET}" admin@example.com < "${LOG}"
 ```
 
 | Choix | Pourquoi |
@@ -1703,6 +1583,7 @@ mail -s "${SUJET}" -a "From: ${EXPEDITEUR}" -a "MIME-Version: 1.0" \
 | `rclone cryptcheck` | Compare les originaux avec les versions chiffrées sur R2, sans tout retélécharger |
 | **Rotation dans le script, après un envoi réussi** | Si le serveur tombe en panne, les dernières copies restent **indéfiniment** sur R2 |
 | Les noms contiennent la date et l'heure | Le tri alphabétique est chronologique, et deux lancements le même jour ne s'écrasent pas (le verrou refuserait de toute façon de remplacer) |
+| `--ignore-existing` et l'archive du site non renvoyée si déjà présente | Sans ça, rclone essaie de **remplacer** un fichier déjà envoyé (date de modification différente) et le verrou répond `409 ObjectLockedByBucketPolicy` : l'envoi entier échoue |
 | Copie refusée par le verrou → « gardée » | Ce n'est pas une erreur : elle sera supprimée à un prochain lancement, quand elle aura plus de 90 jours |
 | Vérification de version, sans mise à jour | Prévient qu'il existe une nouvelle version, sans risquer de casser la sauvegarde |
 
@@ -1746,7 +1627,23 @@ sudo mkdir -p /tmp/test-r2
 sudo rclone copy r2chiffre:auto/ /tmp/test-r2/ --include "essentiel-*"
 ```
 ```bash
-sudo tar -tzf /tmp/test-r2/essentiel-*.tar.gz | head -20
+ls /tmp/test-r2/
+```
+Choisis **un** fichier (s'il y en a plusieurs, `tar -tzf essentiel-*.tar.gz` ne marche pas : tar
+prend le premier pour l'archive et cherche les suivants *dedans*, d'où « non trouvé dans
+l'archive »).
+```bash
+sudo tar -tzf /tmp/test-r2/essentiel-AAAA-MM-JJ_HHhMM.tar.gz | head -20
+```
+Puis la vraie preuve : extraire un fichier dans un dossier de test et le comparer à l'original.
+```bash
+sudo mkdir /tmp/test-r2/extrait
+```
+```bash
+sudo tar -xzf /tmp/test-r2/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C /tmp/test-r2/extrait etc/samba/smb.conf
+```
+```bash
+sudo diff /etc/samba/smb.conf /tmp/test-r2/extrait/etc/samba/smb.conf && echo IDENTIQUE
 ```
 ```bash
 sudo rm -rf /tmp/test-r2
