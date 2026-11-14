@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="640" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Une architecture Horizon de production typique (un site)</text>
+  
+  <rect x="15" y="55" width="160" height="570" rx="10" fill="#f8f9fa" stroke="#dadce0"></rect><text x="95" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#5f6368">INTERNET</text>
+  <rect x="190" y="55" width="230" height="570" rx="10" fill="#fce8e6" stroke="#f6aea9"></rect><text x="305" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#a50e0e">DMZ</text>
+  <rect x="435" y="55" width="550" height="570" rx="10" fill="#f8f9fa" stroke="#dadce0"></rect><text x="710" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#5f6368">RÉSEAU INTERNE</text>
+  <g font-size="12" text-anchor="middle">
+    
+    <rect x="30" y="110" width="130" height="70" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="95" y="138" font-weight="700" fill="#b06000">Télétravailleur</text><text x="95" y="156" fill="#3c4043">Horizon Client</text>
+    
+    <rect x="178" y="95" width="24" height="510" rx="4" fill="#d93025"></rect><text x="190" y="350" fill="#fff" font-size="11" font-weight="700" transform="rotate(-90 190 350)">PARE-FEU EXTERNE</text>
+    
+    <rect x="215" y="105" width="180" height="55" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="305" y="128" font-weight="700" fill="#3c4043">Load balancer</text><text x="305" y="145" fill="#3c4043">vdi.entreprise.fr</text>
+    <rect x="215" y="185" width="85" height="80" rx="8" fill="#fff" stroke="#d93025" stroke-width="2"></rect><text x="257" y="215" font-weight="700" fill="#a50e0e">UAG 1</text><text x="257" y="235" fill="#3c4043" font-size="11">appliance</text>
+    <rect x="310" y="185" width="85" height="80" rx="8" fill="#fff" stroke="#d93025" stroke-width="2"></rect><text x="352" y="215" font-weight="700" fill="#a50e0e">UAG 2</text><text x="352" y="235" fill="#3c4043" font-size="11">appliance</text>
+    <text x="305" y="295" fill="#a50e0e">443 TCP · 8443 TCP/UDP</text>
+    <text x="305" y="312" fill="#a50e0e">(4172 si PCoIP)</text>
+    <rect x="215" y="340" width="180" height="80" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-dasharray="5 4"></rect><text x="305" y="368" font-weight="700" fill="#3c4043">MFA / RADIUS / SAML</text><text x="305" y="386" fill="#3c4043" font-size="11">authentification forte</text><text x="305" y="402" fill="#3c4043" font-size="11">avant tout accès</text>
+    
+    <rect x="423" y="95" width="24" height="510" rx="4" fill="#d93025"></rect><text x="435" y="350" fill="#fff" font-size="11" font-weight="700" transform="rotate(-90 435 350)">PARE-FEU INTERNE</text>
+    
+    <rect x="465" y="100" width="150" height="70" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="540" y="128" font-weight="700" fill="#b06000">Utilisateur interne</text><text x="540" y="146" fill="#3c4043">PC / client léger</text>
+    <rect x="640" y="100" width="330" height="55" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="805" y="123" font-weight="700" fill="#3c4043">Load balancer interne</text><text x="805" y="141" fill="#3c4043">vdi.entreprise.local (VIP)</text>
+    <rect x="640" y="170" width="100" height="75" rx="8" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect><text x="690" y="198" font-weight="700" fill="#5b1e8a">CS 1</text><text x="690" y="216" fill="#3c4043" font-size="11">Standard</text>
+    <rect x="755" y="170" width="100" height="75" rx="8" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect><text x="805" y="198" font-weight="700" fill="#5b1e8a">CS 2</text><text x="805" y="216" fill="#3c4043" font-size="11">Replica</text>
+    <rect x="870" y="170" width="100" height="75" rx="8" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect><text x="920" y="198" font-weight="700" fill="#5b1e8a">CS 3</text><text x="920" y="216" fill="#3c4043" font-size="11">Replica</text>
+    <text x="805" y="262" fill="#5b1e8a" font-size="11">même pod · base AD LDS répliquée</text>
+    
+    <rect x="465" y="200" width="150" height="45" rx="8" fill="#fce8e6" stroke="#d93025"></rect><text x="540" y="227" font-weight="700" fill="#a50e0e">AD · DNS · DHCP</text>
+    <rect x="465" y="255" width="150" height="45" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="540" y="282" font-weight="700" fill="#3c4043">SQL (Events, AppVol)</text>
+    <rect x="465" y="310" width="150" height="45" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="540" y="337" font-weight="700" fill="#3c4043">Fichiers (profils)</text>
+    <rect x="465" y="365" width="150" height="45" rx="8" fill="#ffffff" stroke="#8430ce"></rect><text x="540" y="385" font-weight="700" fill="#5b1e8a">App Volumes Mgr ×2</text><text x="540" y="401" fill="#3c4043" font-size="11">+ Enrollment Server ×2</text>
+    
+    <rect x="640" y="285" width="330" height="95" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="805" y="307" font-weight="700" fill="#0d652d">Cluster MANAGEMENT (3-4 hôtes)</text>
+    <text x="805" y="327" fill="#3c4043">vCenter VDI · Connection Servers · App Volumes</text>
+    <text x="805" y="345" fill="#3c4043">SQL · fichiers · (UAG sur cluster DMZ dédié)</text>
+    <text x="805" y="365" fill="#0d652d" font-size="11">HA + DRS activés, règles d'anti-affinité CS</text>
+    
+    <rect x="465" y="430" width="505" height="180" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="717" y="455" font-weight="700" font-size="13" fill="#174ea6">Clusters BUREAUX (resource clusters)</text>
+    <g font-size="11">
+      <rect x="485" y="470" width="110" height="60" rx="6" fill="#fff" stroke="#1a73e8"></rect><text x="540" y="494" fill="#174ea6" font-weight="700">ESXi 1</text><text x="540" y="512" fill="#3c4043">~100 bureaux</text>
+      <rect x="605" y="470" width="110" height="60" rx="6" fill="#fff" stroke="#1a73e8"></rect><text x="660" y="494" fill="#174ea6" font-weight="700">ESXi 2</text><text x="660" y="512" fill="#3c4043">~100 bureaux</text>
+      <rect x="725" y="470" width="110" height="60" rx="6" fill="#fff" stroke="#1a73e8"></rect><text x="780" y="494" fill="#174ea6" font-weight="700">ESXi ...</text><text x="780" y="512" fill="#3c4043">N+1</text>
+      <rect x="845" y="470" width="110" height="60" rx="6" fill="#fff" stroke="#1a73e8"></rect><text x="900" y="494" fill="#174ea6" font-weight="700">ESXi GPU</text><text x="900" y="512" fill="#3c4043">vGPU NVIDIA</text>
+      <rect x="485" y="545" width="470" height="50" rx="6" fill="#fef7e0" stroke="#e37400"></rect><text x="720" y="566" fill="#b06000" font-weight="700">Stockage partagé (vSAN all-flash ou baie SAN/NAS)</text><text x="720" y="583" fill="#3c4043">VLAN VDI dédiés (/21, /22) · NSX pour micro-segmentation</text>
+    </g>
+  </g>
+  
+  <g stroke="#5f6368" stroke-width="2" fill="none">
+    <line x1="160" y1="140" x2="213" y2="135" marker-end="url(#a)"></line>
+    <line x1="280" y1="160" x2="262" y2="183" marker-end="url(#a)"></line>
+    <line x1="330" y1="160" x2="348" y2="183" marker-end="url(#a)"></line>
+    <line x1="395" y1="225" x2="638" y2="135" marker-end="url(#a)"></line>
+    <line x1="615" y1="130" x2="638" y2="128" marker-end="url(#a)"></line>
+    <line x1="395" y1="250" x2="483" y2="490" stroke-dasharray="6 4" marker-end="url(#a)"></line>
+  </g>
+  <text x="215" y="470" font-size="11" fill="#5f6368">flux Blast : UAG ➜ bureau</text>
+</svg>
