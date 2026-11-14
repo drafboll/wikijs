@@ -2,7 +2,7 @@
 title: Mise à jour du site
 description: 
 published: 1
-date: 2026-11-14T20:50:55.612Z
+date: 2026-11-14T20:52:17.414Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:09:57.190Z
@@ -23,11 +23,11 @@ besoin, mettre à jour le formulaire ou la configuration Apache, et entretenir l
 
 ```mermaid
 graph LR
-  A[PC : modification<br>vérifiée en local] -->|preparer-mise-en-ligne.bat| B[alexandre-faye-3d.tar.gz]
-  B -->|scp| C[MINI : ~/]
-  C -->|tar -xzf| D["/var/www/alexandre-faye-3d"]
-  D --> E[Purge Cloudflare]
-  E --> F[Ctrl+F5 : vérification]
+  A["PC : modification<br>vérifiée en local"] -->|"preparer-mise-en-ligne.bat"| B["alexandre-faye-3d.tar.gz"]
+  B -->|scp| C["MINI : dossier personnel"]
+  C -->|"tar -xzf"| D["/var/www/alexandre-faye-3d"]
+  D --> E["Purge Cloudflare"]
+  E --> F["Ctrl+F5 : vérification"]
 ```
 
 | Étape | Où | Durée |
