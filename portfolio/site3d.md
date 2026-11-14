@@ -2,7 +2,7 @@
 title: Site alexandre-faye.fr
 description: 
 published: 1
-date: 2026-11-13T17:37:25.416Z
+date: 2026-11-14T19:39:38.835Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T09:00:25.593Z
@@ -318,3 +318,306 @@ UUID=62EA3B04EA3AD44F /media/alexandre/ ntfs defaults,nofail 0 0
 Vérifiée avec `sudo findmnt --verify` (0 erreur), puis `sudo systemctl daemon-reload`. Ancienne
 version gardée dans `/etc/fstab.avant-nofail`.
 
+## 8. Restaurer le site
+
+### Quelle sauvegarde utiliser ?
+
+Le site existe à **quatre endroits**. On prend toujours le plus proche qui fonctionne :
+
+| Situation | Source | Section |
+|---|---|---|
+| MINI marche, le site est cassé (mauvaise mise à jour, fichier supprimé…) | `Partage/alexandre-faye-3d/backup/` sur MINI | **8.1** |
+| MINI marche, mais `Partage` a disparu (comme le 12/11/2026) | le disque NTFS : `/media/alexandre/sauvegarde-site/alexandre-faye-3d/` | **8.2** |
+| **MINI est mort, volé ou inaccessible** | **Cloudflare R2**, chiffré (copie tous les 3 mois) | **8.3** |
+| Plus de serveur du tout, il faut que le site soit en ligne **tout de suite** | le dossier du **PC** ou l'archive R2, envoyés sur **Cloudflare Pages** | **8.4** |
+
+> Ce que contient chaque archive `alexandre-faye-3d-AAAA-MM-JJ.tar.gz` : le site
+> (`/var/www/alexandre-faye-3d`), le formulaire (`/var/www/alexandre-faye-3d-api`), ses réglages
+> (`/etc/alexandre-faye-3d`, avec la clé secrète Turnstile) et la configuration Apache du site.
+> Les propriétaires et les droits sont conservés : on extrait depuis `/` et tout retrouve sa place.
+{.is-info}
+
+> **La source du site, c'est le PC** (`D:\Documents\Claude\alexandre-faye-3d\`). Si le site
+> publié est simplement abîmé, le plus simple reste souvent de **refaire une mise en ligne**
+> depuis le PC (page « Mettre à jour le site en ligne »). Les sections ci-dessous servent quand
+> le PC n'est pas disponible, ou quand il faut aussi récupérer le formulaire et Apache.
+{.is-info}
+
+---
+
+### 8.1 Depuis la sauvegarde sur MINI (le cas courant)
+
+**1. Lister les sauvegardes** (la plus récente en bas) :
+```bash
+sudo ls -lh /home/alexandre/Partage/alexandre-faye-3d/backup/
+```
+
+**2. Vérifier celle qu'on veut** (remplace la date). Une liste de fichiers doit défiler :
+```bash
+sudo tar -tzf /home/alexandre/Partage/alexandre-faye-3d/backup/alexandre-faye-3d-AAAA-MM-JJ.tar.gz | head -n 20
+```
+
+**3. Mettre la version actuelle de côté** (c'est le retour arrière si la restauration ne
+convient pas) :
+```bash
+sudo mv /var/www/alexandre-faye-3d /var/www/alexandre-faye-3d.avant-restauration
+```
+
+**4. Restaurer.** Tout reprend sa place (site, formulaire, réglages, Apache) :
+```bash
+sudo tar -xzf /home/alexandre/Partage/alexandre-faye-3d/backup/alexandre-faye-3d-AAAA-MM-JJ.tar.gz -C /
+```
+Pour ne restaurer **que les pages du site**, sans toucher au formulaire ni à Apache, on ajoute le
+chemin à la fin de la commande :
+```bash
+sudo tar -xzf /home/alexandre/Partage/alexandre-faye-3d/backup/alexandre-faye-3d-AAAA-MM-JJ.tar.gz -C / var/www/alexandre-faye-3d
+```
+
+**5. Vérifier Apache, puis recharger** (les trois commandes, dans l'ordre) :
+```bash
+sudo apache2ctl configtest
+```
+```bash
+sudo systemctl reload apache2
+```
+```bash
+systemctl is-active apache2
+```
+`Syntax OK`, puis `active`.
+
+**6. Vider le cache Cloudflare** (Caching → Configuration → **Purge Everything**), puis ouvrir
+https://alexandre-faye.fr avec **Ctrl+F5**. Tester aussi le formulaire.
+
+**7. Si tout va bien**, supprimer l'ancienne version mise de côté (chemin complet, jamais `*`) :
+```bash
+sudo rm -rf /var/www/alexandre-faye-3d.avant-restauration
+```
+
+> **Retour arrière** (la restauration ne convient pas) :
+> `sudo rm -rf /var/www/alexandre-faye-3d` puis
+> `sudo mv /var/www/alexandre-faye-3d.avant-restauration /var/www/alexandre-faye-3d`, puis l'étape 5.
+{.is-warning}
+
+---
+
+### 8.2 Depuis le disque de sauvegarde NTFS
+
+Même procédure que 8.1, seul le dossier change. D'abord vérifier que le disque est bien monté :
+```bash
+mountpoint /media/alexandre
+```
+Réponse attendue : `/media/alexandre is a mountpoint`. Puis :
+```bash
+ls -lh /media/alexandre/sauvegarde-site/alexandre-faye-3d/
+```
+Et les étapes 2 à 7 de la section 8.1, avec ce chemin à la place de
+`/home/alexandre/Partage/alexandre-faye-3d/backup/`.
+
+---
+
+### 8.3 Depuis Cloudflare R2, quand MINI n'est plus là
+
+Le scénario : MINI ne démarre plus (ou a été volé), on repart d'une **machine neuve sous Ubuntu
+24.04**, branchée sur la Freebox.
+
+#### Ce qu'il faut avoir sous la main
+
+| Quoi | Où le trouver si MINI est mort |
+|---|---|
+| L'*Access Key ID*, la *Secret Access Key* et l'*endpoint* R2 (avec `.eu.`) | Bitwarden. Le serveur Bitwarden était **sur MINI** : utilise l'application du **téléphone ou du PC**, qui garde une copie hors ligne du coffre. À défaut, crée un nouveau jeton dans Cloudflare (R2 → Gérer les jetons d'API R2) |
+| Les **deux mots de passe crypt** (`password` et `password2`) | Bitwarden (application hors ligne) **ou le papier**. ⚠️ Sans eux, **rien n'est récupérable**, pas même par Cloudflare |
+| Un accès au tableau de bord Cloudflare | e-mail + code reçu (One-time PIN) |
+
+#### a. Installer rclone (version officielle) et retrouver le coffre chiffré
+
+```bash
+cd /tmp
+```
+```bash
+wget https://downloads.rclone.org/rclone-current-linux-amd64.deb
+```
+```bash
+sudo apt install ./rclone-current-linux-amd64.deb
+```
+```bash
+sudo mkdir -p /root/.config/rclone
+```
+```bash
+sudo vi /root/.config/rclone/rclone.conf
+```
+Contenu (les 3 valeurs viennent de Bitwarden) :
+```ini
+[r2]
+type = s3
+provider = Cloudflare
+access_key_id = TON_ACCESS_KEY_ID
+secret_access_key = TA_SECRET_ACCESS_KEY
+endpoint = https://TON_ID.eu.r2.cloudflarestorage.com
+acl = private
+no_check_bucket = true
+```
+```bash
+sudo chmod 600 /root/.config/rclone/rclone.conf
+```
+Puis la couche de déchiffrement, **avec exactement les mêmes réglages qu'à la création** :
+```bash
+sudo rclone config
+```
+| Question | Réponse |
+|---|---|
+| `n/s/q>` | `n` |
+| `name>` | `r2chiffre` |
+| `Storage>` | `crypt` |
+| `remote>` | `r2:sauvegardes-mini` |
+| `filename_encryption>` | `1` (standard) |
+| `directory_name_encryption>` | `2` (false) |
+| `password` | **`y`** (taper son propre mot de passe), puis coller le **1er** mot de passe |
+| `password2` | **`y`**, puis coller le **2e** mot de passe |
+| `Edit advanced config?` | `n` |
+| `Keep this remote?` | `y`, puis `q` |
+
+> Ici, on répond `y` et pas `g` : on ne **génère** pas de nouveaux mots de passe, on **retape**
+> ceux de la création. Avec d'autres mots de passe, les fichiers resteraient illisibles.
+{.is-danger}
+
+**Vérifier qu'on voit les vrais noms :**
+```bash
+sudo rclone ls r2chiffre:auto/
+```
+On doit lire `alexandre-faye-3d-AAAA-MM-JJ.tar.gz` et `essentiel-AAAA-MM-JJ_HHhMM.tar.gz`. Si la
+liste est vide ou si les noms sont illisibles, ce sont les mots de passe crypt qui sont faux.
+
+#### b. Télécharger et vérifier
+
+```bash
+sudo mkdir -p /root/restauration
+```
+```bash
+sudo rclone copy r2chiffre:auto/ /root/restauration/ --include "alexandre-faye-3d-*" --progress
+```
+```bash
+sudo ls -lh /root/restauration/
+```
+```bash
+sudo tar -tzf /root/restauration/alexandre-faye-3d-AAAA-MM-JJ.tar.gz | head -n 20
+```
+(Une seule archive à la fois dans `tar -tzf` : avec `*` et plusieurs fichiers, tar répond
+« non trouvé dans l'archive ».)
+
+#### c. Remettre Apache et PHP, puis le site
+
+```bash
+sudo apt update
+```
+```bash
+sudo apt install apache2 php libapache2-mod-php certbot python3-certbot-apache
+```
+```bash
+sudo tar -xzf /root/restauration/alexandre-faye-3d-AAAA-MM-JJ.tar.gz -C /
+```
+```bash
+sudo a2ensite alexandre-faye-3d-le-ssl
+```
+```bash
+sudo apache2ctl configtest
+```
+Si `configtest` signale une commande inconnue (`Invalid command 'Header'`, `RewriteEngine`…), il
+manque un module : `sudo a2enmod headers` (ou `rewrite`, `ssl`, `expires`), puis on relance
+`configtest`, jusqu'à `Syntax OK`.
+
+#### d. Le certificat HTTPS, le réseau et le DNS
+
+Les certificats Let's Encrypt (`/etc/letsencrypt`) **ne sont pas** dans l'archive : on les refait.
+
+1. **Freebox** : rediriger les ports **80** et **443** vers l'adresse locale de la nouvelle
+   machine.
+2. **Cloudflare → DNS** : si l'IP publique a changé, mettre la nouvelle dans l'enregistrement `A`
+   de `alexandre-faye.fr` (proxy orange **activé**).
+3. Le certificat :
+   ```bash
+   sudo certbot --apache -d alexandre-faye.fr -d www.alexandre-faye.fr
+   ```
+4. Puis :
+   ```bash
+   sudo systemctl reload apache2
+   ```
+   ```bash
+   systemctl is-active apache2
+   ```
+5. **Purge Everything** dans Cloudflare, et test de https://alexandre-faye.fr avec Ctrl+F5.
+
+#### e. Ce qui ne revient pas tout seul
+
+| Élément | Pourquoi | Que faire |
+|---|---|---|
+| L'envoi des e-mails du formulaire | La configuration Postfix et le relais OVH ne sont pas dans les archives | Réinstaller Postfix avec le relais OVH (le mot de passe est dans Bitwarden) ; en attendant, le site s'affiche mais le formulaire répond « erreur » |
+| Le pare-feu, SSH, fail2ban, Samba | Ils sont dans l'archive **essentiel** (`/etc/ufw`, `/etc/ssh/sshd_config.d`, `/etc/fail2ban/jail.d`, `smb.conf`) | La télécharger de la même façon (`--include "essentiel-*"`) et remettre ces fichiers **un par un**, en relisant la page « Sécuriser le serveur MINI » |
+| Bitwarden, le wiki, Portainer | Dans l'archive **essentiel**, avec la dernière sauvegarde de la base Bitwarden (`.BAK`) | Hors du sujet de cette page : Docker à réinstaller d'abord |
+
+---
+
+### 8.4 En urgence, sans aucun serveur : Cloudflare Pages
+
+Le site est **statique** : Cloudflare peut l'héberger lui-même, gratuitement, en quelques minutes,
+sans serveur. C'est la solution « le site doit revenir en ligne ce soir ».
+
+1. **Récupérer le site** :
+   - depuis le **PC** : double-clic sur `mettre-a-jour.bat`, le site complet est dans
+     `D:\Documents\Claude\alexandre-faye-3d\site\` ;
+   - ou depuis **R2** (sur n'importe quel ordinateur avec rclone, configuré comme en 8.3 a) :
+     télécharger l'archive, puis n'en garder que le site :
+     ```bash
+     sudo tar -xzf /root/restauration/alexandre-faye-3d-AAAA-MM-JJ.tar.gz -C /root/restauration var/www/alexandre-faye-3d
+     ```
+     Le site est alors dans `/root/restauration/var/www/alexandre-faye-3d/`.
+   > **Limite de Pages : 25 Mo par fichier.** Deux vidéos la dépassent :
+   > `media/tennis/saint-raphael.mp4` (33 Mo) et `media/tennis/coucher-de-soleil.mp4` (26 Mo).
+   > **Supprime-les de la copie à envoyer** (pas de l'original !), sinon le chargement est refusé.
+   > La page Tennis s'affichera, sans ces deux vidéos.
+   {.is-warning}
+2. **Cloudflare → Workers & Pages → Créer → Pages → Charger des ressources** (*Upload assets*) :
+   nom du projet `alexandre-faye`, puis glisser **le dossier du site** (celui qui contient
+   `index.html`).
+3. Le site s'ouvre sur une adresse `alexandre-faye.pages.dev` : vérifier qu'il s'affiche.
+4. Onglet **Domaines personnalisés** → **Configurer un domaine** → `alexandre-faye.fr`.
+   Cloudflare remplace l'enregistrement DNS qui pointait vers MINI.
+
+| Ce qui marche | Ce qui ne marche pas |
+|---|---|
+| Toutes les pages, la 3D, les photos, le CV, FR et EN, les vidéos de moins de 25 Mo | Le **formulaire** (il a besoin de PHP sur un serveur) : le lien e-mail `pro@alexandre-faye.fr` reste utilisable |
+| HTTPS, automatiquement | Les redirections des anciennes adresses WordPress (dans `regles.conf`, sur Apache) |
+
+> **Retour à MINI** quand il est réparé : supprimer le domaine personnalisé dans le projet Pages,
+> puis remettre l'enregistrement `A` vers l'IP de la Freebox (proxy orange), et Purge Everything.
+{.is-info}
+
+---
+
+### 8.5 Tester la restauration (tous les 6 mois)
+
+Une sauvegarde qu'on n'a jamais restaurée n'est pas une sauvegarde. Test sans risque, dans un
+dossier temporaire :
+```bash
+sudo mkdir -p /tmp/test-r2
+```
+```bash
+sudo rclone copy r2chiffre:auto/ /tmp/test-r2/ --include "alexandre-faye-3d-*"
+```
+```bash
+ls /tmp/test-r2/
+```
+```bash
+sudo mkdir /tmp/test-r2/extrait
+```
+```bash
+sudo tar -xzf /tmp/test-r2/alexandre-faye-3d-AAAA-MM-JJ.tar.gz -C /tmp/test-r2/extrait var/www/alexandre-faye-3d/index.html
+```
+```bash
+sudo diff /var/www/alexandre-faye-3d/index.html /tmp/test-r2/extrait/var/www/alexandre-faye-3d/index.html && echo IDENTIQUE
+```
+`IDENTIQUE` : la chaîne complète marche (MINI → chiffrement → Cloudflare → téléchargement →
+déchiffrement → archive). Si le site a été mis à jour depuis la dernière archive, une différence
+est normale : on teste alors un fichier qui ne change pas (`media/logo/logo.png`, avec `cmp`).
+```bash
+sudo rm -rf /tmp/test-r2
+```
