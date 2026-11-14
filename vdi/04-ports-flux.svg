@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3c4043"></path></marker></defs>
+  <rect width="1000" height="520" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Les flux réseau et ports d'Horizon (accès interne)</text>
+  <g font-size="13" text-anchor="middle" font-weight="700">
+    <rect x="30" y="200" width="170" height="80" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect><text x="115" y="235" fill="#b06000">Horizon Client</text><text x="115" y="256" font-weight="400" font-size="12" fill="#3c4043">hôte Windows</text>
+    <rect x="400" y="60" width="200" height="80" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect><text x="500" y="95" fill="#5b1e8a">Connection Server</text><text x="500" y="116" font-weight="400" font-size="12" fill="#3c4043">cs01 · .13</text>
+    <rect x="780" y="60" width="190" height="70" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect><text x="875" y="92" fill="#0d652d">vCenter</text><text x="875" y="112" font-weight="400" font-size="12" fill="#3c4043">vcsa01 · .12</text>
+    <rect x="780" y="170" width="190" height="70" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect><text x="875" y="202" fill="#a50e0e">AD / DNS</text><text x="875" y="222" font-weight="400" font-size="12" fill="#3c4043">SRV-GRP3 · .10</text>
+    <rect x="400" y="340" width="200" height="90" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect><text x="500" y="375" fill="#174ea6">Bureau (Agent)</text><text x="500" y="396" font-weight="400" font-size="12" fill="#3c4043">vdi-xx · DHCP</text>
+  </g>
+  <g font-size="12" fill="#3c4043" stroke-width="2">
+    <line x1="200" y1="220" x2="398" y2="115" stroke="#8430ce" marker-end="url(#a)"></line>
+    <text x="215" y="150" fill="#5b1e8a" font-weight="700">TCP 443</text><text x="215" y="166" fill="#5b1e8a">authentification, liste,</text><text x="215" y="182" fill="#5b1e8a">HTML Access</text>
+    <line x1="200" y1="265" x2="398" y2="370" stroke="#e37400" stroke-width="4" marker-end="url(#a)"></line>
+    <text x="190" y="320" fill="#b06000" font-weight="700">TCP + UDP 22443 Blast</text><text x="190" y="336" fill="#b06000">TCP + UDP 4172 PCoIP</text><text x="190" y="352" fill="#b06000">TCP 9427 redirection lecteurs/MMR</text><text x="190" y="368" fill="#b06000">TCP 32111 USB</text>
+    <line x1="600" y1="90" x2="778" y2="90" stroke="#188038" marker-end="url(#a)"></line>
+    <text x="620" y="82" fill="#0d652d" font-weight="700">TCP 443 (API vSphere)</text>
+    <line x1="600" y1="120" x2="778" y2="195" stroke="#d93025" marker-end="url(#a)"></line>
+    <text x="625" y="170" fill="#a50e0e" font-weight="700">LDAP 389/636, Kerberos 88,</text><text x="625" y="186" fill="#a50e0e">DNS 53, GC 3268</text>
+    <line x1="490" y1="140" x2="490" y2="338" stroke="#8430ce" marker-end="url(#a)"></line>
+    <line x1="515" y1="338" x2="515" y2="140" stroke="#1a73e8" marker-end="url(#a)"></line>
+    <text x="525" y="230" fill="#5b1e8a" font-weight="700">TCP 4002 (JMS sécurisé)</text><text x="525" y="246" fill="#3c4043">enregistrement de l'agent,</text><text x="525" y="262" fill="#3c4043">état, commandes de session</text>
+    <line x1="600" y1="380" x2="800" y2="240" stroke="#d93025" marker-end="url(#a)"></line>
+    <text x="700" y="330" fill="#a50e0e">jonction domaine,</text><text x="700" y="346" fill="#a50e0e">ouverture session</text>
+  </g>
+  <rect x="30" y="450" width="940" height="56" rx="8" fill="#f1f3f4" stroke="#9aa0a6"></rect>
+  <text x="500" y="473" text-anchor="middle" font-size="12" fill="#3c4043">Entre Connection Servers d'un même pod : TCP 389/636 (réplication AD LDS), 4100/4101 (JMS), 8472 (CPA), 22389/22636 (LDAP global CPA)</text>
+  <text x="500" y="493" text-anchor="middle" font-size="12" fill="#3c4043">Depuis Internet via UAG : TCP 443 + TCP/UDP 8443 (Blast) + TCP/UDP 4172 (PCoIP) · toujours vérifier la liste officielle pour ta version</text>
+</svg>
