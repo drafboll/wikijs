@@ -2,7 +2,7 @@
 title: Site alexandre-faye.fr
 description: 
 published: 1
-date: 2026-11-14T19:39:38.835Z
+date: 2026-11-14T19:43:50.774Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T09:00:25.593Z
@@ -324,7 +324,7 @@ version gardée dans `/etc/fstab.avant-nofail`.
 
 Le site existe à **quatre endroits**. On prend toujours le plus proche qui fonctionne :
 
-| Situation | Source | Section |
+| Situation | Source | Partie |
 |---|---|---|
 | MINI marche, le site est cassé (mauvaise mise à jour, fichier supprimé…) | `Partage/alexandre-faye-3d/backup/` sur MINI | **8.1** |
 | MINI marche, mais `Partage` a disparu (comme le 12/11/2026) | le disque NTFS : `/media/alexandre/sauvegarde-site/alexandre-faye-3d/` | **8.2** |
@@ -495,6 +495,10 @@ sudo mkdir -p /root/restauration
 ```bash
 sudo rclone copy r2chiffre:auto/ /root/restauration/ --include "alexandre-faye-3d-*" --progress
 ```
+Et l'archive **essentiel** (certificats HTTPS et e-mails, pour l'étape d) :
+```bash
+sudo rclone copy r2chiffre:auto/ /root/restauration/ --include "essentiel-*" --progress
+```
 ```bash
 sudo ls -lh /root/restauration/
 ```
@@ -523,34 +527,70 @@ sudo apache2ctl configtest
 ```
 Si `configtest` signale une commande inconnue (`Invalid command 'Header'`, `RewriteEngine`…), il
 manque un module : `sudo a2enmod headers` (ou `rewrite`, `ssl`, `expires`), puis on relance
-`configtest`, jusqu'à `Syntax OK`.
+`configtest`, jusqu'à `Syntax OK`. S'il signale `SSLCertificateFile: file … does not exist`,
+c'est normal à ce stade : fais d'abord la partie **d** (les certificats), puis relance
+`configtest`.
 
-#### d. Le certificat HTTPS, le réseau et le DNS
+#### d. Les certificats HTTPS et les e-mails (depuis l'archive essentiel)
 
-Les certificats Let's Encrypt (`/etc/letsencrypt`) **ne sont pas** dans l'archive : on les refait.
+Depuis le 14/11/2026, l'archive **essentiel** contient aussi `/etc/letsencrypt` (certificats
+HTTPS), `/etc/postfix` et `/etc/mailname` (envoi des e-mails par le relais OVH). Le nom exact de
+l'archive est donné par `sudo ls /root/restauration/`.
+
+**Les certificats** (à faire **avant** `configtest`, car la configuration Apache les cite) :
+```bash
+sudo tar -xzf /root/restauration/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C / etc/letsencrypt
+```
+```bash
+sudo certbot certificates
+```
+Les certificats de `alexandre-faye.fr` doivent apparaître. S'ils sont **expirés** (plus de
+90 jours), on les renouvelle après l'étape e (le serveur doit être joignable) :
+`sudo certbot renew`.
+
+**Les e-mails** : installer Postfix, puis remettre sa configuration.
+```bash
+sudo apt install postfix libsasl2-modules mailutils
+```
+À la question du type de configuration, choisir **« Pas de configuration »** : on remet la
+nôtre juste après.
+```bash
+sudo tar -xzf /root/restauration/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C / etc/postfix etc/mailname
+```
+```bash
+sudo postmap /etc/postfix/sasl_passwd
+```
+(seulement si le fichier `sasl_passwd` existe ; ça régénère sa version `.db`)
+```bash
+sudo systemctl restart postfix
+```
+Test : `echo test | mail -s "Test MINI" -a "From: pro@alexandre-faye.fr" TON_ADRESSE`.
+
+#### e. Le réseau et le DNS
 
 1. **Freebox** : rediriger les ports **80** et **443** vers l'adresse locale de la nouvelle
    machine.
 2. **Cloudflare → DNS** : si l'IP publique a changé, mettre la nouvelle dans l'enregistrement `A`
    de `alexandre-faye.fr` (proxy orange **activé**).
-3. Le certificat :
-   ```bash
-   sudo certbot --apache -d alexandre-faye.fr -d www.alexandre-faye.fr
-   ```
-4. Puis :
+3. Puis :
    ```bash
    sudo systemctl reload apache2
    ```
    ```bash
    systemctl is-active apache2
    ```
-5. **Purge Everything** dans Cloudflare, et test de https://alexandre-faye.fr avec Ctrl+F5.
+4. Si un certificat manque ou a expiré :
+   ```bash
+   sudo certbot --apache -d alexandre-faye.fr -d www.alexandre-faye.fr
+   ```
+5. **Purge Everything** dans Cloudflare, et test de https://alexandre-faye.fr avec Ctrl+F5, puis
+   un message de test avec le formulaire.
 
-#### e. Ce qui ne revient pas tout seul
+#### f. Ce qui ne revient pas tout seul
 
 | Élément | Pourquoi | Que faire |
 |---|---|---|
-| L'envoi des e-mails du formulaire | La configuration Postfix et le relais OVH ne sont pas dans les archives | Réinstaller Postfix avec le relais OVH (le mot de passe est dans Bitwarden) ; en attendant, le site s'affiche mais le formulaire répond « erreur » |
+| Le formulaire, si l'archive essentiel date d'avant le 14/11/2026 | Postfix n'y était pas encore | Réinstaller Postfix avec le relais OVH (le mot de passe est dans Bitwarden) |
 | Le pare-feu, SSH, fail2ban, Samba | Ils sont dans l'archive **essentiel** (`/etc/ufw`, `/etc/ssh/sshd_config.d`, `/etc/fail2ban/jail.d`, `smb.conf`) | La télécharger de la même façon (`--include "essentiel-*"`) et remettre ces fichiers **un par un**, en relisant la page « Sécuriser le serveur MINI » |
 | Bitwarden, le wiki, Portainer | Dans l'archive **essentiel**, avec la dernière sauvegarde de la base Bitwarden (`.BAK`) | Hors du sujet de cette page : Docker à réinstaller d'abord |
 
