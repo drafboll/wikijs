@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"></path></marker></defs>
+  <rect width="1000" height="560" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Le cycle mensuel de mise à jour (Push Image)</text>
+  
+  <circle cx="330" cy="300" r="190" fill="none" stroke="#d2e3fc" stroke-width="26"></circle>
+  <g font-size="12" text-anchor="middle">
+    <rect x="250" y="70" width="160" height="70" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect><text x="330" y="95" font-weight="700" fill="#174ea6">① Allumer</text><text x="330" y="113" fill="#3c4043">la golden image</text><text x="330" y="129" fill="#3c4043">(gold-v1 actif en prod)</text>
+    <rect x="460" y="160" width="170" height="80" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect><text x="545" y="185" font-weight="700" fill="#174ea6">② Mettre à jour</text><text x="545" y="203" fill="#3c4043">Windows Update, applis,</text><text x="545" y="219" fill="#3c4043">Tools puis agent</text>
+    <rect x="460" y="350" width="170" height="80" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect><text x="545" y="375" font-weight="700" fill="#b06000">③ Nettoyer</text><text x="545" y="393" fill="#3c4043">OSOT Finalize,</text><text x="545" y="409" fill="#3c4043">arrêt propre</text>
+    <rect x="250" y="455" width="160" height="70" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect><text x="330" y="480" font-weight="700" fill="#0d652d">④ Snapshot</text><text x="330" y="498" fill="#3c4043">gold-v2</text><text x="330" y="514" fill="#3c4043">+ description</text>
+    <rect x="30" y="350" width="170" height="80" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect><text x="115" y="375" font-weight="700" fill="#5b1e8a">⑤ Tester</text><text x="115" y="393" fill="#3c4043">Push sur un pool</text><text x="115" y="409" fill="#3c4043">de TEST + recette</text>
+    <rect x="30" y="160" width="170" height="80" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect><text x="115" y="185" font-weight="700" fill="#a50e0e">⑥ Push en prod</text><text x="115" y="203" fill="#3c4043">planifié la nuit,</text><text x="115" y="219" fill="#3c4043">« Wait for users to log off »</text>
+  </g>
+  <text x="330" y="295" text-anchor="middle" font-size="15" font-weight="700" fill="#174ea6">1 fois par mois</text>
+  <text x="330" y="315" text-anchor="middle" font-size="12" fill="#3c4043">(Patch Tuesday + 1 semaine)</text>
+  
+  <rect x="660" y="60" width="320" height="480" rx="12" fill="#f8f9fa" stroke="#9aa0a6"></rect>
+  <text x="820" y="88" text-anchor="middle" font-size="15" font-weight="700" fill="#3c4043">Que fait le Push Image ?</text>
+  <g font-size="12" fill="#3c4043">
+    <text x="680" y="118" font-weight="700">a. Publication de la nouvelle image</text>
+    <text x="692" y="136">nouveaux cp-template / replica / parent</text>
+    <text x="692" y="152">à partir de gold-v2 (les bureaux tournent)</text>
+    <text x="680" y="182" font-weight="700">b. Remplacement des machines</text>
+    <text x="692" y="200">machines libres : remplacées tout de suite</text>
+    <text x="692" y="216">machines occupées : selon l'option choisie</text>
+    <rect x="680" y="230" width="280" height="98" rx="8" fill="#fff" stroke="#e37400"></rect>
+    <text x="692" y="250" font-weight="700" fill="#b06000">Option « Wait for users to log off »</text>
+    <text x="692" y="268">remplacée à la déconnexion de l'utilisateur</text>
+    <text x="692" y="292" font-weight="700" fill="#a50e0e">Option « Force users to log off »</text>
+    <text x="692" y="310">message, délai, puis déconnexion forcée</text>
+    <text x="680" y="356" font-weight="700">c. Nettoyage</text>
+    <text x="692" y="374">anciennes VM internes supprimées</text>
+    <text x="680" y="404" font-weight="700">d. Retour arrière (rollback)</text>
+    <text x="692" y="422">problème ? nouveau Push Image vers gold-v1</text>
+    <text x="692" y="438">(d'où l'intérêt de garder le snapshot)</text>
+    <rect x="680" y="458" width="280" height="66" rx="8" fill="#e6f4ea" stroke="#188038"></rect>
+    <text x="692" y="480" font-weight="700" fill="#0d652d">Garder 2 à 3 snapshots maximum</text>
+    <text x="692" y="498">gold-v(n), gold-v(n-1) pour le rollback,</text>
+    <text x="692" y="514">supprimer les plus anciens (chaîne courte)</text>
+  </g>
+</svg>
