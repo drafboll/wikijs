@@ -2,7 +2,7 @@
 title: Mise à jour du site
 description: 
 published: 1
-date: 2026-11-11T11:11:03.701Z
+date: 2026-11-14T20:50:55.612Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:09:57.190Z
@@ -21,6 +21,15 @@ besoin, mettre à jour le formulaire ou la configuration Apache, et entretenir l
 
 ## 1. Vue d'ensemble
 
+```mermaid
+graph LR
+  A[PC : modification<br>vérifiée en local] -->|preparer-mise-en-ligne.bat| B[alexandre-faye-3d.tar.gz]
+  B -->|scp| C[MINI : ~/]
+  C -->|tar -xzf| D["/var/www/alexandre-faye-3d"]
+  D --> E[Purge Cloudflare]
+  E --> F[Ctrl+F5 : vérification]
+```
+
 | Étape | Où | Durée |
 |---|---|---|
 | 1. Préparer l'archive | PC | 1 min |
@@ -34,7 +43,7 @@ besoin, mettre à jour le formulaire ou la configuration Apache, et entretenir l
 
 ## 2. Préparer l'archive (PC)
 
-Double-clic sur **`preparer-mise-en-ligne.bat`**, dans `D:\Documents\alexandre-faye-3d\`.
+Double-clic sur **`preparer-mise-en-ligne.bat`**, dans `D:\Documents\Claude\alexandre-faye-3d\`.
 
 Il fait deux choses :
 
@@ -51,7 +60,7 @@ lis le message, corrige (souvent une virgule dans un `.json`) et relance.
 ## 3. Envoyer l'archive sur MINI (PC)
 
 Ouvre PowerShell **dans le dossier du projet** : dans l'Explorateur Windows, ouvre
-`D:\Documents\alexandre-faye-3d`, clique dans la barre d'adresse, tape `powershell` et
+`D:\Documents\Claude\alexandre-faye-3d`, clique dans la barre d'adresse, tape `powershell` et
 **Entrée**.
 
 ```bash
@@ -108,7 +117,16 @@ est dans un autre dossier (`/var/www/alexandre-faye-3d-api`).
 
 > Si la première commande est mal tapée (par exemple un espace en trop dans le chemin), `rm -rf`
 > peut supprimer autre chose. **Copie-colle** les commandes plutôt que de les retaper.
+> **N'utilise jamais `sudo rm -rf *`** : `*` veut dire « tout ce qu'il y a dans le dossier où je
+> suis ». Lancé depuis le dossier personnel au lieu de `/var/www/alexandre-faye-3d`, il efface tout
+> le dossier personnel (c'est arrivé le 12/11/2026, voir la page « Sécuriser le serveur MINI »).
+> Toujours un **chemin complet**.
 {.is-danger}
+
+> **Depuis le 12/11/2026, la purge du cache Cloudflare est obligatoire** après chaque mise en
+> ligne : une règle de cache garde les pages du portfolio 1 jour chez Cloudflare. Sans purge, les
+> visiteurs voient l'ancienne version jusqu'à 24 h (voir section 6).
+{.is-warning}
 
 ---
 
@@ -266,6 +284,42 @@ sudo /bin/bash /scripts/alexandre-faye-3d-sauvegarde.sh
 `bash -n` vérifie la syntaxe sans rien lancer (aucun affichage = c'est bon), puis on installe et
 on lance une fois à la main pour recevoir l'e-mail de contrôle.
 
+### Mentions légales et confidentialité (depuis le 14/11/2026)
+
+Obligatoires en France : la loi LCEN (qui publie le site, qui l'héberge) et le RGPD (ce que
+deviennent les données du formulaire). Le site a une page dédiée, en français et en anglais :
+
+| Quoi | Où le modifier (PC) |
+|---|---|
+| Texte de la page FR (`/mentions-legales.html`) | `template\sections\mentions-legales.html` |
+| Texte de la page EN (`/en/legal-notice.html`) | `template\sections\en\legal-notice.html` |
+| Titre, introduction, ligne sous le formulaire | clé `"legal"` de `site.json` et `site-en.json` |
+| Lien du pied de page et ligne sous le formulaire des autres pages | clé `"legal"` de `competences.json`, `competences-en.json`, `sport.json` |
+
+**À mettre à jour** si tu changes quelque chose qui y est décrit : hébergeur, durée de
+conservation des messages (3 ans), durée des journaux Apache (14 jours), ajout d'un outil de
+statistiques ou de cookies (il faudrait alors un bandeau de consentement). Change aussi la date
+« Dernière mise à jour » en bas de la page.
+
+### Référencement Google (depuis le 14/11/2026)
+
+| Quoi | Comment c'est fait |
+|---|---|
+| **Search Console** | Domaine validé par un enregistrement DNS `google-site-verification` chez Cloudflare. |
+| **`sitemap.xml`** | La liste de toutes les pages (FR et EN). **Générée automatiquement** par `build_site.py` à chaque construction : une nouvelle page y apparaît toute seule. |
+| **`robots.txt`** | Généré avec le sitemap : autorise tout et indique `Sitemap: https://alexandre-faye.fr/sitemap.xml`. Cloudflare ajoute ses propres lignes (« content signals ») au-dessus. |
+| **Titre principal (`h1`)** | Un par page. Sur les pages 3D, c'est le grand titre de la première partie (le premier `"title"` des chapitres dans le JSON, par ex. « Alexandre FAYE / Ingénieur systèmes »). |
+| **Title et description** | `"title"` et `"meta_description"` en haut de chaque JSON : ce que Google affiche dans ses résultats. |
+
+**Une seule fois, après la première mise en ligne du sitemap :** Search Console → **Sitemaps**
+→ saisir `sitemap.xml` → **Envoyer**. Ensuite Google le relit tout seul.
+
+**Vérifier en ligne :** `https://alexandre-faye.fr/sitemap.xml` et `https://alexandre-faye.fr/robots.txt`
+doivent s'afficher.
+
+**Retour arrière :** remettre la version précédente du site (section 7). Dans Search Console,
+supprimer le sitemap de la liste.
+
 ---
 
 ## 9. Entretenir le serveur (chaque mois)
@@ -331,7 +385,7 @@ Dans `mail.log`, chaque envoi doit finir par `status=sent`.
 ## 10. Aide-mémoire
 
 ```bash
-# --- PC (PowerShell, dans D:\Documents\alexandre-faye-3d) ---
+# --- PC (PowerShell, dans D:\Documents\Claude\alexandre-faye-3d) ---
 # double-clic sur preparer-mise-en-ligne.bat, puis :
 scp mise-en-ligne\alexandre-faye-3d.tar.gz alexandre@MINI:~/
 
