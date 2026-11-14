@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="560" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Méthode de dépannage : remonter le parcours de connexion</text>
+  <text x="500" y="54" text-anchor="middle" font-size="13" fill="#5f6368">À quelle étape l'utilisateur est-il bloqué ? Chaque étape a ses suspects habituels.</text>
+  <g font-size="12">
+    
+    <rect x="30" y="75" width="220" height="80" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+    <text x="140" y="100" text-anchor="middle" font-weight="700" font-size="13" fill="#b06000">① Joindre le serveur</text>
+    <text x="140" y="120" text-anchor="middle" fill="#3c4043">« impossible de se connecter »</text>
+    <text x="140" y="138" text-anchor="middle" fill="#3c4043">« certificat non valide »</text>
+    <rect x="270" y="75" width="700" height="80" rx="10" fill="#fff" stroke="#e37400"></rect>
+    <text x="285" y="100" fill="#3c4043">DNS du nom (vdi.entreprise.fr / cs01) · pare-feu 443 · load balancer / UAG en panne · certificat expiré</text>
+    <text x="285" y="120" fill="#3c4043">ou nom absent du certificat · services du Connection Server arrêtés · proxy du poste client</text>
+    <text x="285" y="140" fill="#5f6368" font-family="Consolas, monospace">nslookup · Test-NetConnection -Port 443 · navigateur https://serveur</text>
+    <rect x="30" y="170" width="220" height="80" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <text x="140" y="195" text-anchor="middle" font-weight="700" font-size="13" fill="#a50e0e">② S'authentifier</text>
+    <text x="140" y="215" text-anchor="middle" fill="#3c4043">« identifiants incorrects »</text>
+    <text x="140" y="233" text-anchor="middle" fill="#3c4043">MFA refusé</text>
+    <rect x="270" y="170" width="700" height="80" rx="10" fill="#fff" stroke="#d93025"></rect>
+    <text x="285" y="195" fill="#3c4043">Compte verrouillé / expiré / mot de passe à changer · mauvais domaine · heure décalée (Kerberos)</text>
+    <text x="285" y="215" fill="#3c4043">serveur RADIUS / SAML indisponible · contrôleur de domaine injoignable depuis le Connection Server</text>
+    <text x="285" y="235" fill="#5f6368" font-family="Consolas, monospace">Get-ADUser -Properties LockedOut,PasswordExpired · w32tm /stripchart · Events Horizon</text>
+    <rect x="30" y="265" width="220" height="80" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+    <text x="140" y="290" text-anchor="middle" font-weight="700" font-size="13" fill="#5b1e8a">③ Obtenir un bureau</text>
+    <text x="140" y="310" text-anchor="middle" fill="#3c4043">liste vide · « aucune source</text>
+    <text x="140" y="328" text-anchor="middle" fill="#3c4043">disponible »</text>
+    <rect x="270" y="265" width="700" height="80" rx="10" fill="#fff" stroke="#8430ce"></rect>
+    <text x="285" y="290" fill="#3c4043">Pas d'entitlement / mauvais groupe · pool désactivé · pool plein (max machines) · machines en erreur</text>
+    <text x="285" y="310" fill="#3c4043">provisioning bloqué (vCenter, datastore plein, ClonePrep, compte svc-icdomain) · Agent unreachable</text>
+    <text x="285" y="330" fill="#5f6368" font-family="Consolas, monospace">Console : recherche utilisateur · onglet Machines du pool · Problem Machines · Events</text>
+    <rect x="30" y="360" width="220" height="80" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="140" y="385" text-anchor="middle" font-weight="700" font-size="13" fill="#174ea6">④ Afficher le bureau</text>
+    <text x="140" y="405" text-anchor="middle" fill="#3c4043">écran noir · déconnexion</text>
+    <text x="140" y="423" text-anchor="middle" fill="#3c4043">immédiate · « erreur protocole »</text>
+    <rect x="270" y="360" width="700" height="80" rx="10" fill="#fff" stroke="#1a73e8"></rect>
+    <text x="285" y="385" fill="#3c4043">Ports Blast 22443 (interne) / 8443 (UAG) bloqués, UDP filtré · routage client ➜ VLAN VDI · pilotes d'affichage</text>
+    <text x="285" y="405" fill="#3c4043">(Tools / agent dans le mauvais ordre) · Blast Secure Gateway mal configuré · RAM vidéo insuffisante (multi-écran 4K)</text>
+    <text x="285" y="425" fill="#5f6368" font-family="Consolas, monospace">Test-NetConnection IP_bureau -Port 22443 · essayer PCoIP · logs agent (debug-*.txt)</text>
+    <rect x="30" y="455" width="220" height="80" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="140" y="480" text-anchor="middle" font-weight="700" font-size="13" fill="#0d652d">⑤ Travailler</text>
+    <text x="140" y="500" text-anchor="middle" fill="#3c4043">« Bienvenue » interminable</text>
+    <text x="140" y="518" text-anchor="middle" fill="#3c4043">lenteurs · profil temporaire</text>
+    <rect x="270" y="455" width="700" height="80" rx="10" fill="#fff" stroke="#188038"></rect>
+    <text x="285" y="480" fill="#3c4043">Profil FSLogix verrouillé ou plein · GPO / scripts lents · DNS du bureau · antivirus · hôte ou stockage saturé</text>
+    <text x="285" y="500" fill="#3c4043">latence réseau élevée · Teams non optimisé · imprimantes réseau injoignables</text>
+    <text x="285" y="520" fill="#5f6368" font-family="Consolas, monospace">Helpdesk (logon breakdown) · Perf. Tracker · vCenter (CPU ready, disque) · logs FSLogix</text>
+  </g>
+  <g stroke="#5f6368" stroke-width="2"><line x1="140" y1="155" x2="140" y2="168" marker-end="url(#a)"></line><line x1="140" y1="250" x2="140" y2="263" marker-end="url(#a)"></line><line x1="140" y1="345" x2="140" y2="358" marker-end="url(#a)"></line><line x1="140" y1="440" x2="140" y2="453" marker-end="url(#a)"></line></g>
+</svg>
