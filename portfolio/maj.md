@@ -2,7 +2,7 @@
 title: Mise à jour du site
 description: 
 published: 1
-date: 2026-11-14T20:52:17.414Z
+date: 2026-11-14T20:56:17.654Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T11:09:57.190Z
@@ -306,8 +306,9 @@ statistiques ou de cookies (il faudrait alors un bandeau de consentement). Chang
 | Quoi | Comment c'est fait |
 |---|---|
 | **Search Console** | Domaine validé par un enregistrement DNS `google-site-verification` chez Cloudflare. |
-| **`sitemap.xml`** | La liste de toutes les pages (FR et EN). **Générée automatiquement** par `build_site.py` à chaque construction : une nouvelle page y apparaît toute seule. |
-| **`robots.txt`** | Généré avec le sitemap : autorise tout et indique `Sitemap: https://alexandre-faye.fr/sitemap.xml`. Cloudflare ajoute ses propres lignes (« content signals ») au-dessus. |
+| **`sitemap.xml`** | La liste des pages **publiques** : accueil, compétences, mentions légales (FR et EN). **Générée automatiquement** par `build_site.py` à chaque construction : une nouvelle page publique y apparaît toute seule. |
+| **`robots.txt`** | Généré avec le sitemap : ferme aux robots les dossiers photo du sport (`/media/tennis/`, `course`, `velo`, `natation`, `randonnee`) et indique `Sitemap: https://alexandre-faye.fr/sitemap.xml`. Cloudflare ajoute ses propres lignes (« content signals ») au-dessus. |
+| **Section sport, hors de Google** | `"index": false` dans `sport.json` : la page Sport et ses 5 pages reçoivent `<meta name="robots" content="noindex">` et sortent du sitemap. Elles restent **ouvertes** aux robots dans `robots.txt`, exprès : sinon Google ne pourrait pas lire le « noindex ». ⚠️ Elles restent visibles par toute personne qui a le lien ou passe par le menu : ce n'est pas un mot de passe. Pour les remettre dans Google : retirer la ligne `"index": false`. |
 | **Titre principal (`h1`)** | Un par page. Sur les pages 3D, c'est le grand titre de la première partie (le premier `"title"` des chapitres dans le JSON, par ex. « Alexandre FAYE / Ingénieur systèmes »). |
 | **Title et description** | `"title"` et `"meta_description"` en haut de chaque JSON : ce que Google affiche dans ses résultats. |
 
