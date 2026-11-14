@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="520" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Desktop pools, farms et application pools : qui sert quoi</text>
+  <g font-size="12" text-anchor="middle">
+    
+    <rect x="20" y="70" width="460" height="200" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="250" y="96" font-size="15" font-weight="700" fill="#174ea6">Monde VDI (1 utilisateur = 1 VM)</text>
+    <rect x="40" y="112" width="140" height="60" rx="8" fill="#fff" stroke="#1a73e8"></rect><text x="110" y="137" font-weight="700" fill="#174ea6">Golden W11</text><text x="110" y="155" fill="#3c4043">snapshot gold-v3</text>
+    <line x1="180" y1="142" x2="228" y2="142" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="232" y="112" width="230" height="60" rx="8" fill="#fff" stroke="#1a73e8" stroke-width="2"></rect><text x="347" y="137" font-weight="700" fill="#174ea6">Desktop pool « pool-w11-ic »</text><text x="347" y="155" fill="#3c4043">vdi-01 ... vdi-50 (Instant Clones)</text>
+    <text x="250" y="200" fill="#3c4043">➜ L'utilisateur reçoit un bureau Windows 11 complet</text>
+    <text x="250" y="222" fill="#3c4043">Possible aussi : application pool depuis un desktop pool</text>
+    <text x="250" y="242" fill="#5f6368">(applications publiées depuis des VM mono-utilisateur)</text>
+    
+    <rect x="520" y="70" width="460" height="200" rx="12" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+    <text x="750" y="96" font-size="15" font-weight="700" fill="#b06000">Monde RDS (N utilisateurs = 1 serveur)</text>
+    <rect x="540" y="112" width="120" height="60" rx="8" fill="#fff" stroke="#e37400"></rect><text x="600" y="137" font-weight="700" fill="#b06000">Golden WS2022</text><text x="600" y="155" fill="#3c4043">+ rôle RDSH</text>
+    <line x1="660" y1="142" x2="698" y2="142" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="702" y="105" width="260" height="75" rx="8" fill="#fff" stroke="#e37400" stroke-width="2"></rect><text x="832" y="127" font-weight="700" fill="#b06000">Farm « farm-ws22 »</text><text x="832" y="145" fill="#3c4043">rds-01 · rds-02 · rds-03</text><text x="832" y="163" fill="#3c4043">(Instant Clones ou serveurs manuels)</text>
+    <text x="750" y="205" fill="#3c4043">Une farm est un « réservoir » de serveurs. Elle ne se</text>
+    <text x="750" y="223" fill="#3c4043">présente pas directement aux utilisateurs : on crée</text>
+    <text x="750" y="241" fill="#3c4043">dessus des pools (bureau RDS ou applications).</text>
+  </g>
+  
+  <g font-size="12" text-anchor="middle">
+    <line x1="347" y1="270" x2="200" y2="318" stroke="#1a73e8" stroke-width="2" marker-end="url(#a)"></line>
+    <line x1="780" y1="270" x2="520" y2="318" stroke="#e37400" stroke-width="2" marker-end="url(#a)"></line>
+    <line x1="832" y1="270" x2="800" y2="318" stroke="#e37400" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="80" y="320" width="240" height="70" rx="8" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="200" y="346" font-weight="700" fill="#174ea6">🖥 Bureau Windows 11</text><text x="200" y="366" fill="#3c4043">desktop pool VDI</text>
+    <rect x="400" y="320" width="240" height="70" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="520" y="346" font-weight="700" fill="#b06000">🖥 Bureau partagé</text><text x="520" y="366" fill="#3c4043">desktop pool RDS (sur la farm)</text>
+    <rect x="680" y="320" width="240" height="70" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="800" y="340" font-weight="700" fill="#b06000">🧩 Applications publiées</text><text x="800" y="358" fill="#3c4043">Word · ERP · Calculatrice</text><text x="800" y="376" fill="#3c4043">application pools (sur la farm)</text>
+  </g>
+  <rect x="20" y="410" width="960" height="95" rx="10" fill="#f1f3f4" stroke="#9aa0a6"></rect>
+  <text x="40" y="436" font-size="14" font-weight="700" fill="#3c4043">Dans le client Horizon de l'utilisateur, tout apparaît sous forme d'icônes :</text>
+  <text x="40" y="460" font-size="13" fill="#3c4043">un double-clic sur « Bureau Windows 11 » ouvre un bureau entier ; un double-clic sur « ERP » ouvre seulement la fenêtre de l'ERP,</text>
+  <text x="40" y="480" font-size="13" fill="#3c4043">qui se comporte comme une application locale (barre des tâches, Alt+Tab), alors qu'elle tourne sur rds-02 au datacenter.</text>
+  <text x="40" y="498" font-size="12" fill="#5f6368">Seuls les utilisateurs « entitled » (ayant les droits) sur chaque pool voient l'icône correspondante.</text>
+</svg>
