@@ -2,7 +2,7 @@
 title: Sécuriser un serveur Ubuntu auto-hébergé derrière Cloudflare
 description: 
 published: 1
-date: 2026-11-14T19:33:25.839Z
+date: 2026-11-14T19:50:23.232Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-12T01:30:00.938Z
@@ -1291,7 +1291,7 @@ On n'envoie pas tout le serveur : seulement ce qui est **irremplaçable** et **l
 | Le site, s'il n'existe nulle part ailleurs (sa dernière archive de sauvegarde locale) | Les films et la musique (trop gros, souvent récupérables autrement) |
 | La **sauvegarde de base** faite par l'application elle-même (gestionnaire de mots de passe, wiki…) | La base « vivante » en cours d'utilisation (grosse et parfois incohérente si on la copie à chaud) |
 | La configuration des applications : piles Docker, réglages | Les caches, les miniatures, les métadonnées qui se retéléchargent (serveur multimédia) |
-| La **configuration du serveur** : `/etc/apache2`, `smb.conf`, `sshd_config.d`, `fail2ban/jail.d`, `ufw`, `fstab`, les scripts, la crontab | Les journaux (journal DNS d'un bloqueur de publicités, journaux d'applications…) |
+| La **configuration du serveur** : `/etc/apache2`, `smb.conf`, `sshd_config.d`, `fail2ban/jail.d`, `ufw`, `fstab`, **Postfix** (relais e-mail) et **`/etc/letsencrypt`** (certificats HTTPS), les scripts, la crontab | Les journaux (journal DNS d'un bloqueur de publicités, journaux d'applications…) |
 | Une copie d'archive d'un ancien site, une seule fois | Ce qui est déjà synchronisé ailleurs |
 
 Pour mesurer avant de choisir :
@@ -1488,6 +1488,7 @@ ELEMENTS=(
     srv/docker/wiki
     opt/gestionnaire-mdp/config
     etc/apache2 etc/samba/smb.conf etc/ssh/sshd_config.d etc/fail2ban/jail.d etc/ufw etc/fstab
+    etc/postfix etc/mailname etc/letsencrypt      # envoi des e-mails (relais) et certificats HTTPS
     scripts
     var/spool/cron/crontabs/root
 )
@@ -1645,12 +1646,16 @@ sudo tar -xzf /tmp/test-r2/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C /tmp/test-r2/ext
 ```bash
 sudo diff /etc/samba/smb.conf /tmp/test-r2/extrait/etc/samba/smb.conf && echo IDENTIQUE
 ```
+Avant de supprimer le dossier de test, **sors-en** : si le terminal est encore dedans, la
+commande suivante affiche `shell-init : erreur de détermination du répertoire actuel : getcwd`
+(sans gravité, mais déroutant).
+```bash
+cd ~
+```
 ```bash
 sudo rm -rf /tmp/test-r2
 ```
-Le jour où tu en as besoin, sur une machine neuve : installe rclone (version officielle), recrée
-`rclone.conf` avec les clés et les **deux mots de passe crypt** (gardés sur papier), puis
-`rclone copy`, puis `tar -xzf … -C /`.
+Le jour où le serveur n'existe plus : voir **18.7**.
 
 ### 18.6 Ce qu'on voit dans le tableau de bord R2
 
@@ -1661,9 +1666,114 @@ Le jour où tu en as besoin, sur une machine neuve : installe rclone (version of
 | « Taille du compartiment : 0 B » juste après l'envoi | Les statistiques du tableau de bord se mettent à jour avec **quelques heures de retard** |
 | Type `application/octet-stream` | Normal : pour Cloudflare, un fichier chiffré n'est qu'une suite d'octets |
 
+### 18.7 Restaurer quand le serveur n'existe plus
+
+Le scénario : le serveur ne démarre plus, ou a été volé. On repart d'une **machine neuve sous
+Ubuntu**, sur la même box.
+
+**Ce qu'il faut avoir sous la main :**
+
+| Quoi | Où le trouver si le serveur est mort |
+|---|---|
+| *Access Key ID*, *Secret Access Key*, *endpoint* R2 | Le gestionnaire de mots de passe. S'il était hébergé sur ce serveur : son application **téléphone ou PC**, qui garde une copie hors ligne. À défaut, créer un nouveau jeton dans Cloudflare |
+| Les **deux mots de passe crypt** | Le gestionnaire de mots de passe (copie hors ligne) **ou le papier**. Sans eux, **rien n'est récupérable**, pas même par Cloudflare |
+| L'accès au tableau de bord Cloudflare | e-mail + code reçu |
+
+**a. rclone et la couche chiffrée.** Installer la version officielle et écrire `rclone.conf`
+comme en 18.3, puis `sudo rclone config` avec **exactement les mêmes réglages** qu'à la création
+(`crypt`, `r2:sauvegardes-serveur`, `standard`, `false`). Seule différence :
+
+> Pour `password` et `password2`, répondre **`y`** (taper son propre mot de passe) et coller les
+> mots de passe **d'origine**. Surtout pas `g` : de nouveaux mots de passe rendraient tout
+> illisible.
+{.is-danger}
+
+```bash
+sudo rclone ls r2chiffre:auto/
+```
+Les vrais noms (`site-…`, `essentiel-…`) doivent apparaître. Liste vide ou noms illisibles :
+les mots de passe crypt sont faux.
+
+**b. Télécharger** les deux archives les plus récentes :
+```bash
+sudo mkdir -p /root/restauration
+```
+```bash
+sudo rclone copy r2chiffre:auto/ /root/restauration/ --include "site-*" --include "essentiel-*" --progress
+```
+```bash
+sudo ls -lh /root/restauration/
+```
+
+**c. Le serveur web et le site :**
+```bash
+sudo apt install apache2 php libapache2-mod-php certbot python3-certbot-apache
+```
+```bash
+sudo tar -xzf /root/restauration/site-AAAA-MM-JJ.tar.gz -C /
+```
+**d. Les certificats HTTPS** (avant `configtest`, car la configuration Apache les cite) :
+```bash
+sudo tar -xzf /root/restauration/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C / etc/letsencrypt
+```
+```bash
+sudo certbot certificates
+```
+Puis Apache, jusqu'à `Syntax OK` (s'il manque un module : `sudo a2enmod headers`, `rewrite`,
+`ssl`…) :
+```bash
+sudo a2ensite site-le-ssl
+```
+```bash
+sudo apache2ctl configtest
+```
+
+**e. L'envoi des e-mails** (formulaire, comptes rendus de sauvegarde) :
+```bash
+sudo apt install postfix libsasl2-modules mailutils
+```
+Type de configuration : **« Pas de configuration »**, puis on remet la nôtre :
+```bash
+sudo tar -xzf /root/restauration/essentiel-AAAA-MM-JJ_HHhMM.tar.gz -C / etc/postfix etc/mailname
+```
+```bash
+sudo postmap /etc/postfix/sasl/sasl_passwd
+```
+```bash
+sudo systemctl restart postfix
+```
+(Adapter le chemin de `sasl_passwd` s'il est ailleurs : `sudo tar -tzf … | grep sasl` le donne.)
+
+**f. Le réseau :** rediriger les ports 80 et 443 de la box vers la nouvelle machine, mettre la
+nouvelle IP publique dans l'enregistrement `A` chez Cloudflare (proxy orange), puis
+`sudo systemctl reload apache2`, `sudo certbot renew` si un certificat a expiré, **Purge
+Everything** et un test du formulaire.
+
+**g. Le reste** (pare-feu, SSH, fail2ban, Samba, applications Docker) est dans l'archive
+essentiel : le remettre **fichier par fichier**, en relisant les sections du guide
+correspondantes, plutôt que tout extraire d'un coup sur `/`.
+
+> **En urgence, sans serveur du tout :** un site **statique** peut être mis en ligne en quelques
+> minutes sur **Cloudflare Pages** (Workers & Pages → Créer → Pages → *Charger des ressources*,
+> glisser le dossier qui contient `index.html`, puis *Domaines personnalisés*). Limites : **25 Mo
+> par fichier** (retirer les grosses vidéos de la copie envoyée), et rien de ce qui a besoin d'un
+> serveur (formulaire PHP, redirections Apache).
+{.is-info}
+
+### 18.8 Les erreurs rencontrées
+
+| Message | Cause | Solution |
+|---|---|---|
+| `501 NotImplemented: Not Implemented` à chaque envoi | rclone d'Ubuntu (v1.60, 2022), trop ancien pour R2 | Version officielle (18.3) |
+| `GetBucketVersioning … 403 AccessDenied` pendant un `purge` | Le jeton ne lit pas les réglages du bucket (voulu) | Rien : rclone continue |
+| `409 ObjectLockedByBucketPolicy: The object is locked` | rclone veut **remplacer** un fichier de moins de 90 jours (même nom, date différente) | `--ignore-existing`, et ne pas renvoyer une archive déjà présente |
+| « non supprimée (protégée par le verrou de 90 jours) » | Lancements rapprochés : le verrou garde les copies récentes | Rien : elles partiront à un prochain lancement |
+| `tar: … : non trouvé dans l'archive` | `tar -tzf essentiel-*.tar.gz` avec plusieurs fichiers | Donner **un seul** fichier à tar |
+| `shell-init : … getcwd : ne peut accéder aux répertoires parents` | Le terminal est dans un dossier qui vient d'être supprimé | `cd ~` |
+| `403` ou `SignatureDoesNotMatch` sur `rclone lsd` | Clé ou endpoint mal recopié (penser au `.eu.`) | Relire `rclone.conf` |
+
 **Retour arrière :** retirer la ligne de la crontab, puis supprimer le script, le jeton et le
 bucket. Les copies verrouillées ne pourront être supprimées qu'à la fin de leur rétention.
-
 
 ### Pour aller plus loin
 - **VPN WireGuard** (souvent intégré à la box) pour fermer le port SSH.
