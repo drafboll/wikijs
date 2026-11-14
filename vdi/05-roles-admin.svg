@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1000" height="400" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Déléguer l'administration : qui × quel rôle × sur quoi</text>
+  <g font-size="13" text-anchor="middle">
+    <rect x="40" y="70" width="260" height="170" rx="12" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <text x="170" y="98" font-size="16" font-weight="700" fill="#a50e0e">QUI</text>
+    <text x="170" y="118" fill="#a50e0e">utilisateur ou groupe AD</text>
+    <g fill="#3c4043" font-size="12"><text x="170" y="150">GRP-HZ-ADMINS</text><text x="170" y="172">GRP-HZ-HELPDESK</text><text x="170" y="194">GRP-HZ-ADMIN-COMPTA</text><text x="170" y="216">GRP-HZ-AUDIT</text></g>
+    <text x="335" y="165" font-size="30" fill="#5f6368">×</text>
+    <rect x="370" y="70" width="260" height="170" rx="12" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+    <text x="500" y="98" font-size="16" font-weight="700" fill="#5b1e8a">RÔLE</text>
+    <text x="500" y="118" fill="#5b1e8a">ensemble de privilèges</text>
+    <g fill="#3c4043" font-size="12"><text x="500" y="150">Administrators</text><text x="500" y="172">Help Desk Administrators</text><text x="500" y="194">Inventory Administrators</text><text x="500" y="216">Administrators (Read only)</text></g>
+    <text x="665" y="165" font-size="30" fill="#5f6368">×</text>
+    <rect x="700" y="70" width="260" height="170" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="830" y="98" font-size="16" font-weight="700" fill="#0d652d">SUR QUOI</text>
+    <text x="830" y="118" fill="#0d652d">access group</text>
+    <g fill="#3c4043" font-size="12"><text x="830" y="150">/ (racine : tout)</text><text x="830" y="172">/ (racine : tout)</text><text x="830" y="194">/Compta (pools compta)</text><text x="830" y="216">/ (lecture seule)</text></g>
+  </g>
+  <rect x="40" y="265" width="920" height="120" rx="10" fill="#f1f3f4" stroke="#9aa0a6"></rect>
+  <g font-size="13" fill="#3c4043">
+    <text x="60" y="292" font-weight="700">Exemples de lecture :</text>
+    <text x="60" y="316">• GRP-HZ-HELPDESK a le rôle Help Desk sur « / » : il voit toutes les sessions, peut déconnecter, fermer, redémarrer un bureau, mais ne crée rien.</text>
+    <text x="60" y="340">• GRP-HZ-ADMIN-COMPTA a le rôle Inventory Administrators sur « /Compta » : il gère uniquement les pools rangés dans cet access group.</text>
+    <text x="60" y="364">• Principe du moindre privilège : le rôle Administrators (tout faire) est réservé à l'équipe d'ingénierie VDI.</text>
+  </g>
+</svg>
