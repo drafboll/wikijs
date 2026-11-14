@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 520" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"></path></marker></defs>
+  <rect width="980" height="520" fill="#ffffff"></rect>
+  <text x="490" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Tout dépend des services de base : AD, DNS, NTP, DHCP</text>
+  
+  <rect x="340" y="190" width="300" height="150" rx="14" fill="#fce8e6" stroke="#d93025" stroke-width="3"></rect>
+  <text x="490" y="220" text-anchor="middle" font-size="17" font-weight="700" fill="#a50e0e">SRV-GRP3 (192.168.50.10)</text>
+  <g font-size="13" fill="#a50e0e">
+    <text x="365" y="250">🔑 AD DS : comptes, groupes, OU</text>
+    <text x="365" y="274">🌐 DNS : noms ⇄ adresses IP</text>
+    <text x="365" y="298">🕒 NTP : heure de référence</text>
+    <text x="365" y="322">📦 DHCP : IP des bureaux VDI</text>
+  </g>
+  
+  <g font-size="13" text-anchor="middle">
+    <rect x="40" y="70" width="250" height="110" rx="10" fill="#e6f4ea" stroke="#188038"></rect>
+    <text x="165" y="95" font-weight="700" fill="#0d652d">esx01</text>
+    <text x="165" y="117" font-size="12" fill="#3c4043">DNS : son nom FQDN</text>
+    <text x="165" y="135" font-size="12" fill="#3c4043">NTP : sinon certificats et</text>
+    <text x="165" y="151" font-size="12" fill="#3c4043">journaux faux</text>
+    <line x1="290" y1="150" x2="345" y2="200" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="365" y="60" width="250" height="110" rx="10" fill="#f3e8fd" stroke="#8430ce"></rect>
+    <text x="490" y="85" font-weight="700" fill="#5b1e8a">vcsa01</text>
+    <text x="490" y="107" font-size="12" fill="#3c4043">DNS direct ET inverse obligatoire</text>
+    <text x="490" y="125" font-size="12" fill="#3c4043">à l'installation</text>
+    <text x="490" y="143" font-size="12" fill="#3c4043">AD : connexion des admins (svc-vcenter)</text>
+    <line x1="490" y1="170" x2="490" y2="187" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="690" y="70" width="250" height="110" rx="10" fill="#f3e8fd" stroke="#8430ce"></rect>
+    <text x="815" y="95" font-weight="700" fill="#5b1e8a">cs01 (Connection Server)</text>
+    <text x="815" y="117" font-size="12" fill="#3c4043">DOIT être membre du domaine</text>
+    <text x="815" y="135" font-size="12" fill="#3c4043">authentifie les utilisateurs</text>
+    <text x="815" y="151" font-size="12" fill="#3c4043">lit les groupes (GRP-VDI-USERS)</text>
+    <line x1="690" y1="150" x2="635" y2="200" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="40" y="360" width="250" height="120" rx="10" fill="#e8f0fe" stroke="#1a73e8"></rect>
+    <text x="165" y="385" font-weight="700" fill="#174ea6">Bureaux vdi-xx</text>
+    <text x="165" y="407" font-size="12" fill="#3c4043">DHCP : une IP par bureau</text>
+    <text x="165" y="425" font-size="12" fill="#3c4043">AD : compte ordinateur créé</text>
+    <text x="165" y="441" font-size="12" fill="#3c4043">par ClonePrep dans l'OU VDI</text>
+    <text x="165" y="459" font-size="12" fill="#3c4043">DNS : s'enregistrent eux-mêmes</text>
+    <line x1="290" y1="390" x2="345" y2="330" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="365" y="380" width="250" height="110" rx="10" fill="#f1f3f4" stroke="#5f6368"></rect>
+    <text x="490" y="405" font-weight="700" fill="#3c4043">Utilisateur vdiuser1</text>
+    <text x="490" y="427" font-size="12" fill="#3c4043">son compte et son mot de passe</text>
+    <text x="490" y="445" font-size="12" fill="#3c4043">sont vérifiés par l'AD</text>
+    <text x="490" y="463" font-size="12" fill="#3c4043">(Kerberos ➜ heure synchronisée !)</text>
+    <line x1="490" y1="380" x2="490" y2="343" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="690" y="360" width="250" height="120" rx="10" fill="#fef7e0" stroke="#e37400"></rect>
+    <text x="815" y="385" font-weight="700" fill="#b06000">Client Horizon</text>
+    <text x="815" y="407" font-size="12" fill="#3c4043">résout cs01.SRV-GRP3.lan</text>
+    <text x="815" y="425" font-size="12" fill="#3c4043">➜ l'hôte Windows doit utiliser</text>
+    <text x="815" y="441" font-size="12" fill="#3c4043">192.168.50.10 comme DNS</text>
+    <text x="815" y="459" font-size="12" fill="#3c4043">(ou un fichier hosts)</text>
+    <line x1="690" y1="390" x2="635" y2="330" stroke="#d93025" stroke-width="2" marker-end="url(#a)"></line>
+  </g>
+  <text x="490" y="508" text-anchor="middle" font-size="13" fill="#a50e0e" font-weight="700">Règle d'or : 80 % des pannes VDI « mystérieuses » viennent du DNS, de l'heure ou de l'AD.</text>
+</svg>
