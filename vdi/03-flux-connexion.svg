@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8430ce"></path></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"></path></marker>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e37400"></path></marker>
+  </defs>
+  <rect width="1000" height="640" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Ce qui se passe quand user-test01 se connecte à son bureau</text>
+  
+  <g font-size="13" font-weight="700" text-anchor="middle">
+    <rect x="30" y="50" width="150" height="44" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="105" y="77" fill="#b06000">Horizon Client</text>
+    <rect x="290" y="50" width="170" height="44" rx="8" fill="#f3e8fd" stroke="#8430ce"></rect><text x="375" y="77" fill="#5b1e8a">Connection Server</text>
+    <rect x="530" y="50" width="130" height="44" rx="8" fill="#fce8e6" stroke="#d93025"></rect><text x="595" y="77" fill="#a50e0e">AD</text>
+    <rect x="700" y="50" width="130" height="44" rx="8" fill="#e6f4ea" stroke="#188038"></rect><text x="765" y="77" fill="#0d652d">vCenter</text>
+    <rect x="850" y="50" width="130" height="44" rx="8" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="915" y="77" fill="#174ea6">Bureau vdi-01</text>
+  </g>
+  <g stroke="#dadce0" stroke-width="2" stroke-dasharray="5 5">
+    <line x1="105" y1="94" x2="105" y2="560"></line><line x1="375" y1="94" x2="375" y2="560"></line><line x1="595" y1="94" x2="595" y2="560"></line><line x1="765" y1="94" x2="765" y2="560"></line><line x1="915" y1="94" x2="915" y2="560"></line>
+  </g>
+  <g font-size="12" fill="#3c4043">
+    
+    <circle cx="20" cy="125" r="11" fill="#8430ce"></circle><text x="20" y="129" text-anchor="middle" fill="#fff" font-weight="700">1</text>
+    <line x1="105" y1="125" x2="372" y2="125" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="115" y="118">HTTPS 443 : « bonjour horizon » + vérif. certificat</text>
+    
+    <circle cx="20" cy="165" r="11" fill="#8430ce"></circle><text x="20" y="169" text-anchor="middle" fill="#fff" font-weight="700">2</text>
+    <line x1="105" y1="165" x2="372" y2="165" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="115" y="158">identifiant + mot de passe + domaine</text>
+    <line x1="375" y1="185" x2="592" y2="185" stroke="#d93025" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="385" y="180">vérifie le compte, lit ses groupes</text>
+    <line x1="595" y1="205" x2="378" y2="205" stroke="#d93025" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="440" y="220">OK, membre de GG-HZN-Users</text>
+    
+    <circle cx="20" cy="250" r="11" fill="#8430ce"></circle><text x="20" y="254" text-anchor="middle" fill="#fff" font-weight="700">3</text>
+    <line x1="375" y1="250" x2="108" y2="250" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="115" y="243">liste des bureaux autorisés (entitlements)</text>
+    
+    <circle cx="20" cy="290" r="11" fill="#8430ce"></circle><text x="20" y="294" text-anchor="middle" fill="#fff" font-weight="700">4</text>
+    <line x1="105" y1="290" x2="372" y2="290" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="115" y="283">double-clic sur « Bureau Windows »</text>
+    
+    <circle cx="20" cy="335" r="11" fill="#8430ce"></circle><text x="20" y="339" text-anchor="middle" fill="#fff" font-weight="700">5</text>
+    <rect x="300" y="312" width="150" height="44" rx="6" fill="#f3e8fd" stroke="#8430ce"></rect><text x="375" y="331" text-anchor="middle">choisit une VM libre</text><text x="375" y="347" text-anchor="middle">« Available » ➜ vdi-01</text>
+    <line x1="450" y1="325" x2="762" y2="325" stroke="#188038" stroke-width="2" stroke-dasharray="6 3" marker-end="url(#p)"></line>
+    <text x="470" y="318" fill="#0d652d">(si aucune libre : demande d'en allumer / créer)</text>
+    <line x1="450" y1="350" x2="912" y2="350" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="600" y="368">via l'agent (JMS 4002) : « prépare une session pour user-test01 »</text>
+    
+    <circle cx="20" cy="405" r="11" fill="#8430ce"></circle><text x="20" y="409" text-anchor="middle" fill="#fff" font-weight="700">6</text>
+    <line x1="375" y1="405" x2="108" y2="405" stroke="#8430ce" stroke-width="2" marker-end="url(#p)"></line>
+    <text x="115" y="398">« connecte-toi à vdi-01 avec ce jeton »</text>
+    
+    <circle cx="20" cy="460" r="11" fill="#e37400"></circle><text x="20" y="464" text-anchor="middle" fill="#fff" font-weight="700">7</text>
+    <line x1="105" y1="455" x2="912" y2="455" stroke="#e37400" stroke-width="5" marker-end="url(#o)"></line>
+    <line x1="912" y1="470" x2="108" y2="470" stroke="#e37400" stroke-width="5" marker-end="url(#o)"></line>
+    <text x="500" y="447" text-anchor="middle" fill="#b06000" font-weight="700">SESSION DE PROTOCOLE : Blast Extreme (TCP/UDP 22443) ou PCoIP (4172)</text>
+    <text x="500" y="490" text-anchor="middle" fill="#b06000">pixels, son, USB, presse-papiers ⇄ clavier, souris, micro, webcam</text>
+    
+    <circle cx="20" cy="530" r="11" fill="#1a73e8"></circle><text x="20" y="534" text-anchor="middle" fill="#fff" font-weight="700">8</text>
+    <rect x="845" y="510" width="140" height="44" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="915" y="529" text-anchor="middle">ouverture session</text><text x="915" y="545" text-anchor="middle">Windows (SSO)</text>
+    <line x1="845" y1="532" x2="598" y2="532" stroke="#1a73e8" stroke-width="2" marker-end="url(#b)"></line>
+    <text x="620" y="525">Kerberos</text>
+  </g>
+  <rect x="30" y="575" width="940" height="54" rx="8" fill="#f3e8fd" stroke="#8430ce"></rect>
+  <text x="500" y="598" text-anchor="middle" font-size="13" fill="#5b1e8a" font-weight="700">Étapes 1 à 6 = « brokering » (le Connection Server joue l'agent de réservation)</text>
+  <text x="500" y="618" text-anchor="middle" font-size="13" fill="#5b1e8a">Étape 7 = « session » : en interne, le flux va directement du client au bureau, le Connection Server n'est plus dans la boucle.</text>
+</svg>
