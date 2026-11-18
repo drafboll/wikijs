@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 500" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8430ce"></path></marker></defs>
+  <rect width="980" height="500" fill="#ffffff"></rect>
+  <text x="490" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">PC classique ou bureau virtuel (VDI) : où tourne Windows ?</text>
+  
+  <text x="230" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#e37400">PC classique</text>
+  <rect x="60" y="90" width="340" height="230" rx="12" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+  <text x="230" y="118" text-anchor="middle" font-size="14" font-weight="700" fill="#b06000">Sur le bureau de l'utilisateur</text>
+  <g font-size="13" fill="#3c4043" text-anchor="middle">
+    <rect x="90" y="135" width="280" height="40" rx="6" fill="#fff" stroke="#e37400"></rect><text x="230" y="160">Windows + applis + données</text>
+    <rect x="90" y="185" width="280" height="40" rx="6" fill="#fff" stroke="#e37400"></rect><text x="230" y="210">CPU · RAM · disque du PC</text>
+    <text x="230" y="255">💻 tout est sur la machine physique</text>
+    <text x="230" y="280">vol / panne / disque HS = données perdues</text>
+    <text x="230" y="300">chaque PC est à patcher un par un</text>
+  </g>
+  
+  <text x="720" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#8430ce">Bureau virtuel (VDI)</text>
+  <rect x="520" y="90" width="400" height="230" rx="12" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+  <text x="720" y="118" text-anchor="middle" font-size="14" font-weight="700" fill="#5b1e8a">Dans le datacenter</text>
+  <g font-size="13" fill="#3c4043" text-anchor="middle">
+    <rect x="545" y="135" width="110" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="600" y="160">VM Windows</text><text x="600" y="178" font-size="11">Alice</text>
+    <rect x="665" y="135" width="110" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="720" y="160">VM Windows</text><text x="720" y="178" font-size="11">Bob</text>
+    <rect x="785" y="135" width="110" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="840" y="160">VM Windows</text><text x="840" y="178" font-size="11">Chloé</text>
+    <rect x="545" y="205" width="350" height="36" rx="6" fill="#e6f4ea" stroke="#188038"></rect><text x="720" y="228">ESXi + vCenter + Horizon</text>
+    <rect x="545" y="250" width="350" height="36" rx="6" fill="#e8eaed" stroke="#5f6368"></rect><text x="720" y="273">serveurs puissants + stockage</text>
+    <text x="720" y="308" fill="#5b1e8a" font-weight="700">les données ne quittent jamais le datacenter</text>
+  </g>
+  
+  <line x1="720" y1="320" x2="720" y2="370" stroke="#8430ce" stroke-width="3" marker-end="url(#a)"></line>
+  <line x1="700" y1="370" x2="700" y2="320" stroke="#8430ce" stroke-width="3" marker-end="url(#a)"></line>
+  <text x="740" y="345" font-size="12" fill="#5b1e8a">pixels ↓  clavier/souris ↑ (protocole Blast)</text>
+  <g font-size="12" text-anchor="middle" fill="#3c4043">
+    <rect x="530" y="375" width="120" height="70" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="590" y="402">🖥 Client léger</text><text x="590" y="420">(thin client)</text>
+    <rect x="660" y="375" width="120" height="70" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="720" y="402">💻 PC portable</text><text x="720" y="420">à la maison</text>
+    <rect x="790" y="375" width="120" height="70" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="850" y="402">📱 Tablette /</text><text x="850" y="420">navigateur</text>
+  </g>
+  <text x="720" y="470" text-anchor="middle" font-size="12" fill="#3c4043">Le terminal ne sert plus que d'écran + clavier + souris : il peut être vieux, léger, perdu ou volé.</text>
+  
+  <rect x="60" y="345" width="400" height="125" rx="10" fill="#e6f4ea" stroke="#188038"></rect>
+  <text x="80" y="372" font-size="14" font-weight="700" fill="#0d652d">💡 Analogie : Netflix pour ton bureau</text>
+  <g font-size="12" fill="#3c4043">
+    <text x="80" y="396">Le film (Windows) tourne sur les serveurs de Netflix.</text>
+    <text x="80" y="416">Ta télé (le client) ne reçoit qu'un flux vidéo.</text>
+    <text x="80" y="436">Différence : en VDI le flux est interactif, tes clics</text>
+    <text x="80" y="456">et ta frappe remontent vers le serveur.</text>
+  </g>
+</svg>
