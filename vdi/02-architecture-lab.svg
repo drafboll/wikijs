@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1000" height="600" fill="#ffffff"></rect>
+  <text x="500" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Architecture du lab VDI · domaine lab.lan</text>
+
+  <rect x="410" y="52" width="180" height="40" rx="20" fill="#f1f3f4" stroke="#5f6368"></rect><text x="500" y="77" text-anchor="middle" font-size="14" fill="#3c4043">☁ Internet</text>
+  <line x1="500" y1="92" x2="500" y2="118" stroke="#5f6368" stroke-width="2"></line>
+
+  <rect x="330" y="118" width="340" height="44" rx="8" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+  <text x="500" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="#b06000">Passerelle NAT VMware · 192.168.50.2</text>
+  <text x="500" y="155" text-anchor="middle" font-size="12" fill="#b06000">VMnet8 · 192.168.50.0/24 · DHCP de VMware désactivé</text>
+  <line x1="500" y1="162" x2="500" y2="190" stroke="#e37400" stroke-width="3"></line>
+  <line x1="80" y1="190" x2="920" y2="190" stroke="#e37400" stroke-width="5"></line>
+  <text x="900" y="182" text-anchor="end" font-size="12" fill="#b06000" font-weight="700">réseau VMnet8</text>
+
+  <line x1="150" y1="190" x2="150" y2="220" stroke="#e37400" stroke-width="3"></line>
+  <rect x="40" y="220" width="220" height="125" rx="10" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect>
+  <text x="150" y="245" text-anchor="middle" font-size="14" font-weight="700" fill="#3c4043">💻 PC Windows 11</text>
+  <text x="150" y="265" text-anchor="middle" font-size="12" fill="#3c4043">Ryzen 5 5500 · 32 Go</text>
+  <text x="150" y="283" text-anchor="middle" font-size="12" fill="#3c4043">VMware Workstation</text>
+  <text x="150" y="301" text-anchor="middle" font-size="12" fill="#3c4043">Client Horizon, navigateur</text>
+  <text x="150" y="327" text-anchor="middle" font-size="13" font-weight="700" fill="#3c4043">192.168.50.1</text>
+
+  <line x1="370" y1="190" x2="370" y2="220" stroke="#e37400" stroke-width="3"></line>
+  <rect x="275" y="220" width="200" height="125" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+  <text x="375" y="245" text-anchor="middle" font-size="14" font-weight="700" fill="#a50e0e">🛡 DC01.lab.lan</text>
+  <text x="375" y="265" text-anchor="middle" font-size="12" fill="#a50e0e">VM Workstation · 4 Go</text>
+  <text x="375" y="283" text-anchor="middle" font-size="12" fill="#a50e0e">AD DS · DNS · DHCP</text>
+  <text x="375" y="301" text-anchor="middle" font-size="12" fill="#a50e0e">PKI LAB-ROOT-CA · LDAPS</text>
+  <text x="375" y="327" text-anchor="middle" font-size="13" font-weight="700" fill="#a50e0e">192.168.50.10</text>
+
+  <line x1="720" y1="190" x2="720" y2="220" stroke="#e37400" stroke-width="3"></line>
+  <rect x="490" y="220" width="475" height="360" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+  <text x="510" y="245" font-size="15" font-weight="700" fill="#0d652d">🖥 esx01 · ESXi 8.0 U1 imbriqué · 192.168.50.11</text>
+  <text x="510" y="263" font-size="12" fill="#0d652d">8 vCPU · banque ds-esx01 300 Go (thin) · non joint au domaine</text>
+  <text x="510" y="281" font-size="12" fill="#0d652d">vCenter : DC-LAB ▸ CL-LAB (DRS / HA off) · vSwitch0 en mode imbriqué</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="510" y="295" width="212" height="80" rx="8" fill="#f3e8fd" stroke="#8430ce"></rect>
+    <text x="616" y="317" font-size="13" font-weight="700" fill="#5b1e8a">VCENTER</text>
+    <text x="616" y="335" fill="#5b1e8a">vCenter 8.0.3 (Tiny)</text>
+    <text x="616" y="351" fill="#5b1e8a">PNID = son IP</text>
+    <text x="616" y="367" font-weight="700" fill="#5b1e8a">192.168.50.12</text>
+    <rect x="732" y="295" width="212" height="80" rx="8" fill="#f3e8fd" stroke="#8430ce"></rect>
+    <text x="838" y="317" font-size="13" font-weight="700" fill="#5b1e8a">Horizon.lab.lan</text>
+    <text x="838" y="335" fill="#5b1e8a">Connection Server</text>
+    <text x="838" y="351" fill="#5b1e8a">Windows Server 2022 · 2 vCPU</text>
+    <text x="838" y="367" font-weight="700" fill="#5b1e8a">192.168.50.13</text>
+    <rect x="510" y="385" width="434" height="70" rx="8" fill="#e8f0fe" stroke="#1a73e8"></rect>
+    <text x="727" y="407" font-size="13" font-weight="700" fill="#174ea6">GI-W11 · golden image (éteinte, snapshot v1)</text>
+    <text x="727" y="425" fill="#174ea6">Windows 11 sans vTPM · Tools · Horizon Agent · 2 vCPU · 3 Go · 64 Go thin</text>
+    <text x="727" y="443" fill="#174ea6">hors domaine · IP par DHCP</text>
+    <rect x="510" y="465" width="212" height="100" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-dasharray="5 4"></rect>
+    <text x="616" y="490" font-size="13" font-weight="700" fill="#174ea6">VDI-W11-01</text>
+    <text x="616" y="508" fill="#174ea6">clone instantané</text>
+    <text x="616" y="526" fill="#174ea6">2 vCPU · 3 Go</text>
+    <text x="616" y="544" fill="#174ea6">DHCP .100-.150 · OU=Postes</text>
+    <rect x="732" y="465" width="212" height="100" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-dasharray="5 4"></rect>
+    <text x="838" y="490" font-size="13" font-weight="700" fill="#174ea6">VDI-W11-02</text>
+    <text x="838" y="508" fill="#5f6368">seulement si la RAM</text>
+    <text x="838" y="526" fill="#5f6368">de l'ESXi le permet</text>
+  </g>
+
+  <g font-size="12" fill="#3c4043">
+    <text x="40" y="378" font-weight="700" font-size="13">Noms DNS (zone lab.lan, A + PTR)</text>
+    <text x="40" y="398" font-family="Consolas, monospace" xml:space="preserve">dc01.lab.lan      .10</text>
+    <text x="40" y="415" font-family="Consolas, monospace" xml:space="preserve">esx01.lab.lan     .11</text>
+    <text x="40" y="432" font-family="Consolas, monospace" xml:space="preserve">vcenter.lab.lan   .12  (PNID = l'IP)</text>
+    <text x="40" y="449" font-family="Consolas, monospace" xml:space="preserve">horizon.lab.lan   .13</text>
+    <text x="40" y="480" font-weight="700" font-size="13">Comptes de service</text>
+    <text x="40" y="500" font-family="Consolas, monospace" xml:space="preserve">svc-vcenter-ldap</text><text x="185" y="500">vCenter ➜ AD en LDAPS</text>
+    <text x="40" y="517" font-family="Consolas, monospace" xml:space="preserve">svc-horizon-vc</text><text x="185" y="517">Horizon ➜ vCenter (rôle dédié)</text>
+    <text x="40" y="534" font-family="Consolas, monospace" xml:space="preserve">svc-horizon-ic</text><text x="185" y="534">jonction des clones, OU=Postes</text>
+    <text x="40" y="565" fill="#a50e0e" font-weight="700">Démarrage : DC01 ➜ esx01 ➜ VCENTER ➜ Horizon</text>
+  </g>
+</svg>
