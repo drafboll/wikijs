@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="500" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Les états d'une machine dans la console (onglet Machines)</text>
+  <g font-size="13" text-anchor="middle">
+    <rect x="30" y="70" width="150" height="54" rx="27" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect><text x="105" y="102" font-weight="700" fill="#3c4043">Provisioning</text>
+    <line x1="180" y1="97" x2="218" y2="97" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="222" y="70" width="150" height="54" rx="27" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect><text x="297" y="102" font-weight="700" fill="#3c4043">Customizing</text>
+    <line x1="372" y1="97" x2="410" y2="97" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="414" y="70" width="150" height="54" rx="27" fill="#e6f4ea" stroke="#188038" stroke-width="3"></rect><text x="489" y="102" font-weight="700" fill="#0d652d">Available</text>
+    <line x1="564" y1="97" x2="602" y2="97" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="606" y="70" width="150" height="54" rx="27" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"></rect><text x="681" y="102" font-weight="700" fill="#174ea6">Connected</text>
+    <line x1="681" y1="124" x2="681" y2="168" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="690" y="150" text-anchor="start" font-size="11" fill="#5f6368">fenêtre fermée</text>
+    <rect x="606" y="172" width="150" height="54" rx="27" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect><text x="681" y="204" font-weight="700" fill="#b06000">Disconnected</text>
+    <line x1="625" y1="172" x2="645" y2="128" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="560" y="155" font-size="11" fill="#5f6368">reconnexion</text>
+    <line x1="756" y1="199" x2="808" y2="199" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <line x1="756" y1="97" x2="808" y2="180" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <text x="800" y="130" font-size="11" fill="#5f6368">logoff</text>
+    <rect x="812" y="172" width="160" height="54" rx="27" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect><text x="892" y="196" font-weight="700" fill="#a50e0e">Deleting</text><text x="892" y="213" font-size="11" fill="#a50e0e">(pool flottant IC)</text>
+    <path d="M892 226 Q 892 262 500 262 Q 105 262 105 128" stroke="#5f6368" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#a)"></path>
+    <text x="500" y="254" font-size="11" fill="#5f6368">un clone neuf est créé pour garder le bon nombre de machines</text>
+  </g>
+  
+  <rect x="30" y="285" width="940" height="200" rx="12" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+  <text x="50" y="312" font-size="15" font-weight="700" fill="#a50e0e">Les états qui doivent t'alerter</text>
+  <g font-size="12" fill="#3c4043">
+    <text x="50" y="340" font-weight="700">Agent unreachable</text><text x="240" y="340">L'agent ne répond plus au Connection Server : réseau, DNS, port 4002, agent planté, VM éteinte.</text>
+    <text x="50" y="364" font-weight="700">Error / Provisioning error</text><text x="240" y="364">La création a échoué : vCenter, datastore plein, compte AD. Lire le détail au survol de l'état.</text>
+    <text x="50" y="388" font-weight="700">Customization failed</text><text x="240" y="388">ClonePrep n'a pas fini : domaine, OU, DNS, DHCP, heure. Souvent toutes les VM d'un coup.</text>
+    <text x="50" y="412" font-weight="700">Already used</text><text x="240" y="412">Machine « sale » d'un pool flottant que Horizon refuse de redonner (session non fermée proprement).</text>
+    <text x="50" y="436" font-weight="700">Maintenance</text><text x="240" y="436">Mise à jour en cours (Push Image) ou mise en maintenance manuelle : normal si c'est voulu.</text>
+    <text x="50" y="460" font-weight="700">Unassigned user connected</text><text x="240" y="460">Pool dédié : un utilisateur connecté n'est pas celui à qui la machine est attribuée.</text>
+  </g>
+</svg>
