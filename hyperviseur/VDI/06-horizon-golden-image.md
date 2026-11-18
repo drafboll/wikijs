@@ -2,7 +2,7 @@
 title: 06 - vCenter : authentification Active Directory en LDAPS
 description: 
 published: 1
-date: 2026-11-18T13:19:20.625Z
+date: 2026-11-18T13:21:10.107Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:19.619Z
@@ -157,7 +157,7 @@ Le type affiche **ActiveDirectory (Par défaut)** : tu peux te connecter en tapa
 
 > **Piège rencontré :** la page *Autorisations globales* s'est affichée **vide**, sans bouton. C'est un bug d'affichage : **Ctrl + F5**, dézoome, ou ouvre une fenêtre privée.
 
-![Piège - autorisations globales vides](/vcenter_ldaps/28-piege-autorisations-vides.png)
+
 
 ### 6.2 (Facultatif) Administrer aussi le SSO
 
