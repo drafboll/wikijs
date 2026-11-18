@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="980" height="470" fill="#ffffff"></rect>
+  <text x="490" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Avant / après la virtualisation</text>
+
+  
+  <text x="235" y="74" text-anchor="middle" font-size="15" font-weight="700" fill="#d93025">AVANT : 1 serveur physique = 1 OS = 1 appli</text>
+  <g font-size="13" text-anchor="middle">
+    
+    <rect x="30" y="95" width="130" height="34" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="95" y="117" fill="#174ea6">Messagerie</text>
+    <rect x="30" y="135" width="130" height="34" rx="6" fill="#f1f3f4" stroke="#5f6368"></rect><text x="95" y="157" fill="#3c4043">Windows Server</text>
+    <rect x="30" y="175" width="130" height="150" rx="8" fill="#e8eaed" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="95" y="200" font-weight="700" fill="#3c4043">Serveur 1</text>
+    <text x="95" y="222" fill="#5f6368">CPU · RAM · disque</text>
+    <rect x="45" y="240" width="100" height="16" rx="3" fill="#fff" stroke="#9aa0a6"></rect><rect x="45" y="240" width="15" height="16" rx="3" fill="#d93025"></rect>
+    <text x="95" y="280" fill="#d93025" font-weight="700">utilisé : 15 %</text>
+    
+    <rect x="170" y="95" width="130" height="34" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="235" y="117" fill="#174ea6">Fichiers</text>
+    <rect x="170" y="135" width="130" height="34" rx="6" fill="#f1f3f4" stroke="#5f6368"></rect><text x="235" y="157" fill="#3c4043">Windows Server</text>
+    <rect x="170" y="175" width="130" height="150" rx="8" fill="#e8eaed" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="235" y="200" font-weight="700" fill="#3c4043">Serveur 2</text>
+    <text x="235" y="222" fill="#5f6368">CPU · RAM · disque</text>
+    <rect x="185" y="240" width="100" height="16" rx="3" fill="#fff" stroke="#9aa0a6"></rect><rect x="185" y="240" width="10" height="16" rx="3" fill="#d93025"></rect>
+    <text x="235" y="280" fill="#d93025" font-weight="700">utilisé : 10 %</text>
+    
+    <rect x="310" y="95" width="130" height="34" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="375" y="117" fill="#174ea6">ERP</text>
+    <rect x="310" y="135" width="130" height="34" rx="6" fill="#f1f3f4" stroke="#5f6368"></rect><text x="375" y="157" fill="#3c4043">Linux</text>
+    <rect x="310" y="175" width="130" height="150" rx="8" fill="#e8eaed" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="375" y="200" font-weight="700" fill="#3c4043">Serveur 3</text>
+    <text x="375" y="222" fill="#5f6368">CPU · RAM · disque</text>
+    <rect x="325" y="240" width="100" height="16" rx="3" fill="#fff" stroke="#9aa0a6"></rect><rect x="325" y="240" width="20" height="16" rx="3" fill="#d93025"></rect>
+    <text x="375" y="280" fill="#d93025" font-weight="700">utilisé : 20 %</text>
+  </g>
+  <g font-size="13" fill="#3c4043">
+    <text x="30" y="360">✗ 3 machines à acheter, alimenter, refroidir, câbler</text>
+    <text x="30" y="382">✗ Ressources gaspillées (80 % du temps à ne rien faire)</text>
+    <text x="30" y="404">✗ Panne matérielle = service arrêté</text>
+    <text x="30" y="426">✗ Nouveau serveur = des semaines (commande, racking...)</text>
+  </g>
+
+  
+  <line x1="490" y1="70" x2="490" y2="440" stroke="#dadce0" stroke-width="2" stroke-dasharray="6 6"></line>
+  <text x="490" y="250" text-anchor="middle" font-size="30" fill="#1a73e8">➜</text>
+
+  
+  <text x="735" y="74" text-anchor="middle" font-size="15" font-weight="700" fill="#188038">APRÈS : 1 serveur physique, plusieurs VM isolées</text>
+  <g font-size="13" text-anchor="middle">
+    <rect x="535" y="95" width="400" height="80" rx="8" fill="#ffffff" stroke="#1a73e8" stroke-dasharray="4 3"></rect>
+    <rect x="550" y="105" width="115" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="607" y="128" fill="#174ea6" font-weight="700">VM 1</text><text x="607" y="148" fill="#174ea6">Messagerie</text>
+    <rect x="677" y="105" width="115" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="734" y="128" fill="#174ea6" font-weight="700">VM 2</text><text x="734" y="148" fill="#174ea6">Fichiers</text>
+    <rect x="804" y="105" width="115" height="60" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="861" y="128" fill="#174ea6" font-weight="700">VM 3</text><text x="861" y="148" fill="#174ea6">ERP</text>
+    <rect x="535" y="185" width="400" height="40" rx="6" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect><text x="735" y="210" fill="#0d652d" font-weight="700">Hyperviseur (ESXi) : partage CPU, RAM, disque, réseau</text>
+    <rect x="535" y="235" width="400" height="90" rx="8" fill="#e8eaed" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="735" y="260" font-weight="700" fill="#3c4043">1 seul serveur physique</text>
+    <rect x="610" y="275" width="250" height="16" rx="3" fill="#fff" stroke="#9aa0a6"></rect><rect x="610" y="275" width="175" height="16" rx="3" fill="#188038"></rect>
+    <text x="735" y="313" fill="#188038" font-weight="700">utilisé : 70 %</text>
+  </g>
+  <g font-size="13" fill="#3c4043">
+    <text x="535" y="360">✓ Moins de matériel, d'énergie et de place</text>
+    <text x="535" y="382">✓ Chaque VM est isolée : si l'une plante, les autres continuent</text>
+    <text x="535" y="404">✓ Une VM = quelques fichiers : copie, sauvegarde, déplacement faciles</text>
+    <text x="535" y="426">✓ Nouveau serveur = quelques minutes</text>
+  </g>
+</svg>
