@@ -2,67 +2,109 @@
 title: 00 - Cours VDI : sommaire
 description: Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon, de la théorie à la production, avec un lab
 published: 1
-date: 2026-11-13T17:45:11.044Z
+date: 2026-11-18T13:07:15.474Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:44:14.247Z
 ---
 
-# Cours VDI : VMware vSphere + Omnissa Horizon
+# 00 - Cours VDI : sommaire
 
-> Ce cours part de zéro : **comprendre** la virtualisation, **construire** un lab VDI complet sur un seul PC, puis **maîtriser** Horizon au niveau attendu en entreprise. Chaque page a des schémas, des commandes prêtes à l'emploi et un quiz.
-{.is-info}
+> **Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon 8**, de la théorie à un lab sécurisé comme en entreprise : comptes par tier, PKI interne, LDAPS, moindre privilège.
+>
+> Chaque page décrit ce qui a **réellement été fait** dans le lab, écran par écran, avec les captures, les pièges rencontrés et un quiz.
 
-![Carte du cours](/vdi/00-carte-cours.svg)
+---
 
 ## Les pages
 
 | # | Page | Ce que tu y apprends |
 |---|---|---|
-| 01 | [Les bases de la virtualisation](/hyperviseur/VDI/01-bases-virtualisation) | Hyperviseurs type 1 et 2, anatomie d'une VM, datastores, thin / thick, réseau virtuel, vCenter, cluster (vMotion, DRS, HA), snapshots, virtualisation imbriquée |
-| 02 | [Mise en place de l'infrastructure du lab](/hyperviseur/VDI/02-infrastructure-lab) | Architecture et plan d'adressage, AD / DNS / NTP / DHCP, OU et comptes de service, ESXi nested, réseau en mode promiscuité, déploiement de vCenter, checklist |
-| 03 | [La VDI et Omnissa Horizon](/hyperviseur/VDI/03-vdi-et-horizon) | VDI vs RDS vs DaaS, composants d'Horizon, parcours détaillé d'une connexion, protocoles Blast / PCoIP, types de pools, Instant Clones |
-| 04 | [Installation d'Horizon pas à pas](/hyperviseur/VDI/04-installation-horizon) | Connection Server, console, ajout de vCenter, golden image Windows 11, Horizon Agent, pool Instant Clone, client, dépannage de l'installation |
-| 05 | [Administrer Horizon au quotidien](/hyperviseur/VDI/05-horizon-administration) | Console, pools, machines, sessions, farms RDS et applications publiées, droits, rôles, paramètres globaux, GPO, Teams, helpdesk, supervision, API |
-| 06 | [Golden image, cycle de vie, profils et applications](/hyperviseur/VDI/06-horizon-golden-image) | Construire et maintenir l'image, Push Image, tests, FSLogix, DEM, App Volumes, antivirus et activation en VDI |
-| 07 | [Horizon en production et dépannage](/hyperviseur/VDI/07-horizon-production) | Architecture de référence, haute disponibilité, UAG, certificats, True SSO, Cloud Pod Architecture, dimensionnement, sauvegarde, mises à jour, sécurité, méthode de dépannage, glossaire |
+| 01 | [Les bases de la virtualisation](/fr/hyperviseur/VDI/01-bases-virtualisation) | Hyperviseurs type 1 et 2, anatomie d'une VM, stockage thin et thick, réseau virtuel, vCenter, cluster, snapshots, virtualisation imbriquée |
+| 02 | [La VDI et Omnissa Horizon](/fr/hyperviseur/VDI/02-vdi-et-horizon) | VDI, RDS et DaaS, composants d'Horizon, parcours d'une connexion, protocole Blast, types de pools, clones instantanés |
+| 03 | [Construire le lab](/fr/hyperviseur/VDI/03-construire-le-lab) | Le PC hôte, VMware Workstation et VMnet8, DC01, ESXi imbriqué, vCenter et le piège du PNID, cluster CL-LAB |
+| 04 | [L'Active Directory du lab](/fr/hyperviseur/VDI/04-active-directory) | DNS et zone inverse, DHCP, OU, comptes par tier, groupes, délégation sur OU=Postes |
+| 05 | [La PKI : LAB-ROOT-CA](/fr/hyperviseur/VDI/05-pki) | Autorité de certification sur DC01, CAPolicy.inf, CDP et AIA, modèle des DC, inscription automatique, attaques ESC1, ESC6 et ESC8 |
+| 06 | [vCenter en LDAPS](/fr/hyperviseur/VDI/06-vcenter-ldaps) | Source d'identité AD en LDAPS, épinglage du certificat, autorisations globales, pourquoi l'ESXi n'est pas joint au domaine |
+| 07 | [Sécuriser le vCenter et l'AD](/fr/hyperviseur/VDI/07-securiser-vcenter-ad) | Certificat LAB-ROOT-CA pour le vCenter, SSO, VAMI, mode de verrouillage de l'ESXi, signature LDAP, TLS, Protected Users, LAPS |
+| 08 | [Préparer l'infrastructure pour Horizon](/fr/hyperviseur/VDI/08-preparation-horizon) | Serveur Horizon, modèle LAB-HorizonServer, dossiers VDI, pas de vTPM, rôle vCenter Horizon-InstantClone |
+| 09 | [La golden image Windows 11](/fr/hyperviseur/VDI/09-golden-image) | VM sans vTPM, contournement LabConfig, compte local, VMware Tools, Horizon Agent, OSOT, snapshot |
+| 10 | [Installer Horizon](/fr/hyperviseur/VDI/10-installation-horizon) | Connection Server, certificat `vdm`, licence, ajout du vCenter, compte de jonction, réglages de sécurité |
+| 11 | Premier pool et premier bureau | *À venir* |
+| 12 | Administrer Horizon au quotidien | *À venir* |
+| 13 | Profils, applications et cycle de vie de l'image | *À venir* |
+| 14 | Production et aller plus loin | *À venir* |
+
+---
 
 ## Le lab en un coup d'œil
 
 ![Architecture du lab](/vdi/02-architecture-lab.svg)
 
-| Machine | IP | Rôle |
+| Machine | IP | Système | Rôle | Où elle tourne |
+|---|---|---|---|---|
+| **DC01.lab.lan** | 192.168.50.10 | Windows Server | AD DS, DNS, DHCP, autorité de certification **LAB-ROOT-CA** | VMware Workstation |
+| **esx01** | 192.168.50.11 | ESXi 8.0 U1 | Hyperviseur, cluster **CL-LAB** | VMware Workstation (imbriqué) |
+| **vCenter** | 192.168.50.12 | vCenter 8.0.3, taille Tiny | Gestion vSphere | esx01 |
+| **Horizon.lab.lan** | 192.168.50.13 | Windows Server 2022 | Futur Connection Server | esx01 |
+| **GI-W11** | DHCP | Windows 11, sans vTPM | Golden image | esx01 |
+| Bureaux VDI | DHCP .100 à .150 | Windows 11 | Clones instantanés | esx01 |
+
+**Domaine :** `lab.lan`, NetBIOS `LAB`.
+
+**Les comptes :**
+
+| Tier | Compte | Sert à |
 |---|---|---|
-| SRV-GRP3 | 192.168.50.10 | AD DS, DNS, NTP, DHCP (domaine `SRV-GRP3.lan`) |
-| esx01 | 192.168.50.11 | ESXi 8 imbriqué dans VMware Workstation |
-| vcsa01 | 192.168.50.12 | vCenter Server (Tiny) |
-| cs01 (VM « Horizon ») | 192.168.50.13 | Horizon Connection Server 2412 |
-| Golden Image | DHCP | Windows 11 + Tools + Horizon Agent |
-| vdi-01, vdi-02 | DHCP .100-.199 | Bureaux Instant Clone |
+| 0 | `adm-dom-afaye` | Administrer l'AD, **uniquement sur les DC** |
+| 1 | `adm-vmw-afaye` | Administrer vCenter et l'ESXi |
+| 1 | `adm-hzn-afaye` | Administrer Horizon |
+| Service | `svc-vcenter-ldap`, `svc-horizon-vc`, `svc-horizon-ic` | Un compte par usage, droits minimaux |
+| Utilisateur | `afaye`, `user-test01`, `user-test02` | Ouvrir un bureau virtuel |
+
+---
 
 ## Où en est le lab ?
 
-| Étape | État |
-|---|---|
-| ESXi installé, datastore `ds-esx01` | ✅ fait |
-| vCenter déployé, `DC-LAB` / `CL-LAB` | ✅ fait (stage 2 à vérifier) |
-| VM « Horizon » et « Golden Image » créées | ✅ fait |
-| Installeurs Connection Server et Agent 2412 téléchargés | ✅ fait |
-| DNS, NTP, DHCP, comptes AD, promiscuité vSwitch0 | ⬜ [page 02](/hyperviseur/VDI/02-infrastructure-lab) |
-| Connection Server installé et configuré | ⬜ [page 04, étapes 2 à 4](/hyperviseur/VDI/04-installation-horizon) |
-| Golden image prête (Tools, domaine, agent, snapshot) | ⬜ [page 04, étapes 5 à 7](/hyperviseur/VDI/04-installation-horizon) |
-| Pool Instant Clone + droits | ⬜ [page 04, étapes 8 et 9](/hyperviseur/VDI/04-installation-horizon) |
-| Client Horizon, première connexion | ⬜ [page 04, étape 10](/hyperviseur/VDI/04-installation-horizon) |
-| TP d'administration (RDS, GPO, rôles) | ⬜ [page 05](/hyperviseur/VDI/05-horizon-administration) |
-| FSLogix, Push Image | ⬜ [page 06](/hyperviseur/VDI/06-horizon-golden-image) |
-
-## Corrections apportées par rapport au résumé initial
-
-| Sujet | Résumé initial | Correction |
+| Étape | Page | État |
 |---|---|---|
-| Nom de domaine | `lan` | **`SRV-GRP3.lan`** : FQDN `esx01.srv-grp3.lan`, `vcsa01.srv-grp3.lan`, `cs01.srv-grp3.lan` |
-| Comptes de service | `svc-vcenter`, `svc-horizon` | + **`svc-icdomain`** pour que les Instant Clones puissent créer leurs comptes ordinateur |
-| Disque de la golden image | 60 Go | **64 Go minimum** pour Windows 11 |
-| Disque des bureaux | 40 Go choisis dans le pool | Pour un Instant Clone, le disque **est celui de la golden image** (thin et partagé) |
-| DHCP | « DHCP ou .20 » | Un serveur DHCP **unique** (SRV-GRP3), DHCP de VMnet8 désactivé |
-| Réseau nested | Non mentionné | **Promiscuité, changements de MAC et transmissions forgées** à accepter sur vSwitch0 |
+| Workstation, ESXi, vCenter, cluster CL-LAB | 03 | ✅ |
+| DNS, zone inverse, DHCP | 04 | ✅ |
+| OU, groupes, comptes par tier, délégation | 04 | ✅ |
+| LAB-ROOT-CA, certificat de DC01, LDAPS | 05 | ✅ |
+| vCenter relié à l'AD en LDAPS, autorisations globales | 06 | ✅ |
+| DNS et NTP de l'ESXi | 03 | ⬜ |
+| Certificat LAB-ROOT-CA du vCenter, durcissement vCenter et AD | 07 | ⬜ |
+| Modèle LAB-HorizonServer, dossiers, rôle Horizon-InstantClone | 08 | ✅ |
+| Supprimer NKP-LAB, `GG-HZN-Admins` administrateur local | 08 | ⬜ |
+| Golden image Windows 11 | 09 | ⬜ |
+| Connection Server installé et configuré | 10 | ⬜ |
+| Premier pool, premier bureau | 11 | ⬜ |
+
+---
+
+## Les choix de sécurité du lab
+
+| Choix | Pourquoi | Page |
+|---|---|---|
+| Comptes séparés par tier (`adm-dom`, `adm-vmw`, `adm-hzn`) | Un compte volé ne donne la main que sur son périmètre | 04 |
+| Un compte de service par usage, droits minimaux | Moindre privilège, traçabilité | 04, 07 |
+| PKI interne sans modèle par défaut ni inscription web | Pas d'attaque ESC1, ESC6 ni ESC8 | 05 |
+| vCenter relié à l'AD **en LDAPS**, certificat épinglé | Aucun mot de passe en clair sur le réseau | 06 |
+| ESXi **non joint** au domaine, en mode de verrouillage | Faille CVE-2024-37085 (« ESX Admins »), administration par le vCenter seul | 03, 07 |
+| Certificat du vCenter émis par LAB-ROOT-CA, avec approbation | Plus d'alerte, ESC1 neutralisé | 07 |
+| Signature LDAP, liaison de canal, TLS 1.2, Protected Users, LAPS | Durcissement de l'AD | 07 |
+| Rôle vCenter dédié pour Horizon | Horizon n'est pas administrateur du vCenter | 08 |
+| Certificat Horizon émis par LAB-ROOT-CA, nom tiré de l'AD | Pas d'alerte de certificat, pas d'ESC1 | 08, 10 |
+
+> **Le compromis du lab :** pas de vTPM dans la golden image (page 08). En production, on le garde.
+
+---
+
+## Dates à ne pas oublier
+
+| Quoi | Quand |
+|---|---|
+| Renouveler le certificat de DC01 et le réimporter dans le vCenter | **Fin septembre 2027** (expiration le 17/11/2027) |
+| Renouveler le certificat du vCenter | 1 an après son émission (page 07) |
+| Renouveler le certificat Horizon (`vdm`) | 1 an après son émission (page 10) |
