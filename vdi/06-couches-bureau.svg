@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="560" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Le bureau non persistant, assemblé en couches à chaque connexion</text>
+  
+  <g font-size="13" text-anchor="middle">
+    <rect x="40" y="70" width="440" height="70" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <text x="260" y="98" font-weight="700" fill="#a50e0e">④ Données utilisateur</text>
+    <text x="260" y="120" fill="#3c4043" font-size="12">Documents, Bureau ➜ redirection de dossiers / OneDrive / partage</text>
+    <rect x="40" y="150" width="440" height="70" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+    <text x="260" y="178" font-weight="700" fill="#b06000">③ Profil et paramètres</text>
+    <text x="260" y="200" fill="#3c4043" font-size="12">FSLogix (profil VHDX complet) et/ou DEM (paramètres ciblés)</text>
+    <rect x="40" y="230" width="440" height="70" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+    <text x="260" y="258" font-weight="700" fill="#5b1e8a">② Applications du service</text>
+    <text x="260" y="280" fill="#3c4043" font-size="12">App Volumes (packages attachés selon le groupe AD), applis publiées</text>
+    <rect x="40" y="310" width="440" height="70" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+    <text x="260" y="338" font-weight="700" fill="#174ea6">① Golden image</text>
+    <text x="260" y="360" fill="#3c4043" font-size="12">Windows, Tools, agent, applis communes à tous (navigateur, Office...)</text>
+    <rect x="40" y="390" width="440" height="40" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="260" y="416" font-weight="700" fill="#0d652d">Instant Clone (détruit à la déconnexion)</text>
+  </g>
+  
+  <g font-size="12" text-anchor="middle">
+    <rect x="600" y="70" width="370" height="70" rx="10" fill="#fff" stroke="#d93025"></rect>
+    <text x="785" y="96" font-weight="700" fill="#a50e0e">📁 \\fichiers\users$\%username%</text>
+    <text x="785" y="116" fill="#3c4043">ou OneDrive / SharePoint</text>
+    <line x1="480" y1="105" x2="598" y2="105" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="600" y="150" width="370" height="70" rx="10" fill="#fff" stroke="#e37400"></rect>
+    <text x="785" y="176" font-weight="700" fill="#b06000">📁 \\fichiers\profils$ : Profile_user-test01.vhdx</text>
+    <text x="785" y="196" fill="#3c4043">+ \\fichiers\dem$ (config DEM, archives)</text>
+    <line x1="480" y1="185" x2="598" y2="185" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="600" y="230" width="370" height="70" rx="10" fill="#fff" stroke="#8430ce"></rect>
+    <text x="785" y="256" font-weight="700" fill="#5b1e8a">💾 datastore : packages App Volumes (VMDK)</text>
+    <text x="785" y="276" fill="#3c4043">gérés par App Volumes Manager</text>
+    <line x1="480" y1="265" x2="598" y2="265" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+    <rect x="600" y="310" width="370" height="70" rx="10" fill="#fff" stroke="#1a73e8"></rect>
+    <text x="785" y="336" font-weight="700" fill="#174ea6">💾 datastore : replica de la golden image</text>
+    <text x="785" y="356" fill="#3c4043">partagé par tous les clones</text>
+    <line x1="480" y1="345" x2="598" y2="345" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+  </g>
+  
+  <rect x="40" y="450" width="930" height="95" rx="10" fill="#f1f3f4" stroke="#9aa0a6"></rect>
+  <text x="60" y="476" font-size="14" font-weight="700" fill="#3c4043">À l'ouverture de session de user-test01 (en quelques secondes) :</text>
+  <g font-size="12" fill="#3c4043">
+    <text x="60" y="500">1. Horizon donne un clone neuf  ➜  2. App Volumes attache les packages de ses groupes  ➜  3. FSLogix monte son VHDX de profil</text>
+    <text x="60" y="522">➜  4. DEM applique ses paramètres (imprimantes, lecteurs, réglages d'applis)  ➜  5. Ses dossiers pointent vers le serveur de fichiers / OneDrive.</text>
+    <text x="60" y="540" fill="#5f6368">À la déconnexion : le profil est démonté, les paramètres sauvegardés, le clone détruit. L'utilisateur retrouvera tout demain sur un autre clone.</text>
+  </g>
+</svg>
