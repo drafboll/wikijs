@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="1000" height="620" fill="#ffffff"></rect>
+  <text x="500" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Les composants d'une plateforme Omnissa Horizon</text>
+  
+  <rect x="15" y="55" width="190" height="545" rx="10" fill="#f8f9fa" stroke="#dadce0"></rect><text x="110" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#5f6368">UTILISATEURS</text>
+  <rect x="215" y="55" width="190" height="545" rx="10" fill="#fce8e6" stroke="#f6aea9"></rect><text x="310" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#a50e0e">DMZ</text>
+  <rect x="415" y="55" width="570" height="545" rx="10" fill="#f8f9fa" stroke="#dadce0"></rect><text x="700" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#5f6368">RÉSEAU INTERNE / DATACENTER</text>
+  <g font-size="12" text-anchor="middle">
+    
+    <rect x="30" y="100" width="160" height="80" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="110" y="125" font-weight="700" font-size="13" fill="#b06000">Horizon Client</text><text x="110" y="143" fill="#3c4043">Windows, macOS, Linux,</text><text x="110" y="159" fill="#3c4043">iOS, Android, ChromeOS</text>
+    <rect x="30" y="195" width="160" height="65" rx="8" fill="#fef7e0" stroke="#e37400"></rect><text x="110" y="220" font-weight="700" font-size="13" fill="#b06000">HTML Access</text><text x="110" y="240" fill="#3c4043">simple navigateur web</text>
+    <rect x="30" y="275" width="160" height="65" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="110" y="300" font-weight="700" font-size="13" fill="#3c4043">Client léger</text><text x="110" y="320" fill="#3c4043">IGEL, Dell, HP...</text>
+    <text x="110" y="380" fill="#5f6368">🏠 Télétravail / Internet</text>
+    <text x="110" y="400" fill="#5f6368">🏢 Réseau de l'entreprise</text>
+    
+    <rect x="230" y="150" width="160" height="110" rx="8" fill="#ffffff" stroke="#d93025" stroke-width="2"></rect><text x="310" y="176" font-weight="700" font-size="13" fill="#a50e0e">Unified Access</text><text x="310" y="193" font-weight="700" font-size="13" fill="#a50e0e">Gateway (UAG)</text><text x="310" y="215" fill="#3c4043">appliance Linux</text><text x="310" y="232" fill="#3c4043">reverse proxy sécurisé</text><text x="310" y="249" fill="#3c4043">pour l'accès externe</text>
+    
+    <rect x="430" y="100" width="130" height="60" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="495" y="125" font-weight="700" fill="#3c4043">Répartiteur</text><text x="495" y="143" fill="#3c4043">de charge (VIP)</text>
+    
+    <rect x="580" y="95" width="230" height="130" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="3"></rect>
+    <text x="695" y="120" font-weight="700" font-size="15" fill="#5b1e8a">Connection Server</text>
+    <text x="695" y="140" fill="#5b1e8a">le « cerveau » (broker)</text>
+    <text x="695" y="160" fill="#3c4043">authentifie · autorise</text>
+    <text x="695" y="176" fill="#3c4043">attribue un bureau · provisionne</text>
+    <text x="695" y="192" fill="#3c4043">console d'admin · base AD LDS</text>
+    <text x="695" y="212" fill="#5b1e8a" font-size="11">Horizon (+ réplicas en production)</text>
+    
+    <rect x="830" y="95" width="140" height="60" rx="8" fill="#fce8e6" stroke="#d93025"></rect><text x="900" y="120" font-weight="700" fill="#a50e0e">Active Directory</text><text x="900" y="138" fill="#3c4043">utilisateurs, groupes</text>
+    <rect x="830" y="165" width="140" height="60" rx="8" fill="#f1f3f4" stroke="#5f6368"></rect><text x="900" y="190" font-weight="700" fill="#3c4043">Base Events</text><text x="900" y="208" fill="#3c4043">SQL / PostgreSQL</text>
+    
+    <rect x="580" y="250" width="230" height="60" rx="8" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect><text x="695" y="275" font-weight="700" fill="#0d652d">vCenter Server</text><text x="695" y="293" fill="#3c4043">exécute les ordres de provisioning</text>
+    
+    <rect x="430" y="335" width="540" height="160" rx="10" fill="#e6f4ea" stroke="#188038"></rect>
+    <text x="700" y="357" font-weight="700" font-size="13" fill="#0d652d">Cluster ESXi · bureaux et serveurs RDS</text>
+    <rect x="445" y="370" width="120" height="110" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="505" y="393" font-weight="700" fill="#174ea6">Golden image</text><text x="505" y="411" fill="#3c4043">Windows</text><text x="505" y="427" fill="#3c4043">+ Tools</text><text x="505" y="443" fill="#3c4043">+ Horizon Agent</text><text x="505" y="465" fill="#174ea6" font-size="11">modèle</text>
+    <rect x="575" y="370" width="120" height="110" rx="6" fill="#e8f0fe" stroke="#1a73e8"></rect><text x="635" y="393" font-weight="700" fill="#174ea6">Bureau VDI</text><text x="635" y="411" fill="#3c4043">Instant Clone</text><text x="635" y="427" fill="#3c4043">Horizon Agent</text><text x="635" y="465" fill="#174ea6" font-size="11">Desktop pool</text>
+    <rect x="705" y="370" width="120" height="110" rx="6" fill="#fef7e0" stroke="#e37400"></rect><text x="765" y="393" font-weight="700" fill="#b06000">Serveur RDSH</text><text x="765" y="411" fill="#3c4043">Windows Server</text><text x="765" y="427" fill="#3c4043">Horizon Agent</text><text x="765" y="465" fill="#b06000" font-size="11">Farm / applis</text>
+    <rect x="835" y="370" width="120" height="110" rx="6" fill="#ffffff" stroke="#9aa0a6" stroke-dasharray="4 3"></rect><text x="895" y="393" font-weight="700" fill="#3c4043">Enrollment</text><text x="895" y="409" font-weight="700" fill="#3c4043">Server</text><text x="895" y="431" fill="#3c4043">True SSO</text><text x="895" y="447" fill="#3c4043">(certificats)</text>
+    
+    <rect x="430" y="510" width="170" height="80" rx="8" fill="#ffffff" stroke="#8430ce" stroke-dasharray="5 4"></rect><text x="515" y="535" font-weight="700" fill="#5b1e8a">App Volumes</text><text x="515" y="553" fill="#3c4043">applications livrées</text><text x="515" y="569" fill="#3c4043">par disques attachés</text>
+    <rect x="615" y="510" width="170" height="80" rx="8" fill="#ffffff" stroke="#8430ce" stroke-dasharray="5 4"></rect><text x="700" y="535" font-weight="700" fill="#5b1e8a">DEM</text><text x="700" y="553" fill="#3c4043">profils et paramètres</text><text x="700" y="569" fill="#3c4043">utilisateurs</text>
+    <rect x="800" y="510" width="170" height="80" rx="8" fill="#ffffff" stroke="#8430ce" stroke-dasharray="5 4"></rect><text x="885" y="535" font-weight="700" fill="#5b1e8a">Omnissa Access</text><text x="885" y="553" fill="#3c4043">portail, SSO, MFA</text><text x="885" y="569" fill="#3c4043">(ex-Workspace ONE)</text>
+    <text x="25" y="545" fill="#3c4043" font-size="11" text-anchor="start">— trait plein : indispensable</text>
+    <text x="25" y="565" fill="#3c4043" font-size="11" text-anchor="start">- - pointillés : optionnel</text>
+  </g>
+  
+  <g stroke="#5f6368" stroke-width="2" fill="none">
+    <line x1="190" y1="140" x2="228" y2="190" marker-end="url(#a)"></line>
+    <line x1="390" y1="190" x2="428" y2="140" marker-end="url(#a)"></line>
+    <line x1="560" y1="130" x2="578" y2="130" marker-end="url(#a)"></line>
+    <line x1="810" y1="125" x2="828" y2="125" marker-end="url(#a)"></line>
+    <line x1="810" y1="195" x2="828" y2="195" marker-end="url(#a)"></line>
+    <line x1="695" y1="225" x2="695" y2="248" marker-end="url(#a)"></line>
+    <line x1="695" y1="310" x2="695" y2="333" marker-end="url(#a)"></line>
+  </g>
+</svg>
