@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1000" height="430" fill="#ffffff"></rect>
+  <text x="500" y="32" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Construire la golden image : l'ordre compte</text>
+  <g font-size="12" text-anchor="middle">
+    
+    <g>
+      <rect x="20" y="60" width="140" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+      <text x="90" y="85" font-weight="700" font-size="14" fill="#174ea6">① VM</text>
+      <text x="90" y="107" fill="#3c4043">2 vCPU · 3 Go</text><text x="90" y="124" fill="#3c4043">disque 64 Go thin</text><text x="90" y="141" fill="#3c4043">VMXNET3 · EFI</text><text x="90" y="158" fill="#3c4043">sans vTPM (lab)</text>
+      <text x="90" y="190" fill="#5f6368">dans vCenter</text>
+    </g>
+    <text x="172" y="140" font-size="22" fill="#1a73e8">➜</text>
+    <g>
+      <rect x="185" y="60" width="140" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+      <text x="255" y="85" font-weight="700" font-size="14" fill="#174ea6">② Windows</text>
+      <text x="255" y="107" fill="#3c4043">installation propre</text><text x="255" y="124" fill="#3c4043">Windows 11</text><text x="255" y="141" fill="#3c4043">Enterprise</text><text x="255" y="158" fill="#3c4043">mises à jour</text>
+      <text x="255" y="190" fill="#5f6368">compte local, LabConfig</text>
+    </g>
+    <text x="337" y="140" font-size="22" fill="#1a73e8">➜</text>
+    <g>
+      <rect x="350" y="60" width="140" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+      <text x="420" y="85" font-weight="700" font-size="14" fill="#174ea6">③ VMware Tools</text>
+      <text x="420" y="107" fill="#3c4043">installation</text><text x="420" y="124" fill="#3c4043">complète</text><text x="420" y="141" fill="#3c4043">+ redémarrage</text>
+      <text x="420" y="190" fill="#5f6368">TOUJOURS avant l'agent</text>
+    </g>
+    <text x="502" y="140" font-size="22" fill="#1a73e8">➜</text>
+    <g>
+      <rect x="515" y="60" width="140" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+      <text x="585" y="85" font-weight="700" font-size="14" fill="#174ea6">④ Applications</text>
+      <text x="585" y="107" fill="#3c4043">communes à</text><text x="585" y="124" fill="#3c4043">tous les bureaux</text><text x="585" y="141" fill="#3c4043">PAS de jonction</text><text x="585" y="158" fill="#3c4043">au domaine</text>
+      <text x="585" y="190" fill="#5f6368">IP en DHCP</text>
+    </g>
+    <text x="667" y="140" font-size="22" fill="#1a73e8">➜</text>
+    <g>
+      <rect x="680" y="60" width="140" height="150" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="2"></rect>
+      <text x="750" y="85" font-weight="700" font-size="14" fill="#5b1e8a">⑤ Horizon Agent</text>
+      <text x="750" y="107" fill="#3c4043">option Instant</text><text x="750" y="124" fill="#3c4043">Clone Agent</text><text x="750" y="141" fill="#3c4043">+ redémarrage</text>
+      <text x="750" y="190" fill="#5f6368">ne PAS enregistrer</text>
+    </g>
+    <text x="832" y="140" font-size="22" fill="#1a73e8">➜</text>
+    <g>
+      <rect x="845" y="60" width="140" height="150" rx="10" fill="#fef7e0" stroke="#e37400" stroke-width="2"></rect>
+      <text x="915" y="85" font-weight="700" font-size="14" fill="#b06000">⑥ Optimiser</text>
+      <text x="915" y="107" fill="#3c4043">OS Optimization</text><text x="915" y="124" fill="#3c4043">Tool (OSOT)</text><text x="915" y="141" fill="#3c4043">veille off</text><text x="915" y="158" fill="#3c4043">updates off</text>
+      <text x="915" y="190" fill="#5f6368">puis « Finalize »</text>
+    </g>
+  </g>
+  
+  <g font-size="13" text-anchor="middle">
+    <rect x="230" y="240" width="250" height="80" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <text x="355" y="268" font-weight="700" fill="#a50e0e">⑦ Arrêt propre</text>
+    <text x="355" y="290" fill="#3c4043" font-size="12">« Arrêter » Windows (pas suspendre,</text>
+    <text x="355" y="306" fill="#3c4043" font-size="12">pas d'arrêt brutal), IP libérée</text>
+    <text x="500" y="285" font-size="22" fill="#1a73e8">➜</text>
+    <rect x="520" y="240" width="250" height="80" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="645" y="268" font-weight="700" fill="#0d652d">⑧ Snapshot « v1 »</text>
+    <text x="645" y="290" fill="#3c4043" font-size="12">VM éteinte, sans mémoire,</text>
+    <text x="645" y="306" fill="#3c4043" font-size="12">description = ce qui a changé</text>
+  </g>
+  <rect x="20" y="345" width="965" height="70" rx="10" fill="#f1f3f4" stroke="#9aa0a6"></rect>
+  <text x="40" y="372" font-size="13" font-weight="700" fill="#3c4043">Pourquoi cet ordre ?</text>
+  <text x="40" y="394" font-size="12" fill="#3c4043">Les pilotes des Tools (VMXNET3, SVGA) doivent être en place avant que l'agent n'installe ses propres pilotes (affichage, USB). Si tu mets à jour les Tools plus tard,</text>
+  <text x="40" y="410" font-size="12" fill="#3c4043">réinstalle (ou répare) l'agent ensuite. L'optimisation et le nettoyage se font en dernier pour ne pas être annulés par une installation.</text>
+</svg>
