@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 500" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"></path></marker></defs>
+  <rect width="980" height="500" fill="#ffffff"></rect>
+  <text x="490" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Anatomie d'une machine virtuelle</text>
+  
+  <text x="230" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#1a73e8">Ce que voit l'OS invité</text>
+  <rect x="40" y="85" width="380" height="380" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"></rect>
+  <rect x="60" y="100" width="340" height="40" rx="6" fill="#ffffff" stroke="#1a73e8"></rect><text x="230" y="125" text-anchor="middle" font-size="14" fill="#174ea6" font-weight="700">Windows 10 / 11 (OS invité)</text>
+  <rect x="60" y="150" width="340" height="34" rx="6" fill="#d2e3fc" stroke="#1a73e8"></rect><text x="230" y="172" text-anchor="middle" font-size="13" fill="#174ea6">VMware Tools (pilotes + agent invité)</text>
+  <g font-size="13" fill="#3c4043">
+    <rect x="60" y="200" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="140" y="224" text-anchor="middle" font-weight="700">vCPU</text><text x="140" y="243" text-anchor="middle" font-size="12">2 processeurs virtuels</text>
+    <rect x="240" y="200" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="320" y="224" text-anchor="middle" font-weight="700">vRAM</text><text x="320" y="243" text-anchor="middle" font-size="12">4 Go de mémoire</text>
+    <rect x="60" y="266" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="140" y="290" text-anchor="middle" font-weight="700">Disque virtuel</text><text x="140" y="309" text-anchor="middle" font-size="12">contrôleur SCSI / NVMe</text>
+    <rect x="240" y="266" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="320" y="290" text-anchor="middle" font-weight="700">Carte réseau</text><text x="320" y="309" text-anchor="middle" font-size="12">vNIC VMXNET3</text>
+    <rect x="60" y="332" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="140" y="356" text-anchor="middle" font-weight="700">Carte vidéo</text><text x="140" y="375" text-anchor="middle" font-size="12">SVGA virtuelle</text>
+    <rect x="240" y="332" width="160" height="56" rx="6" fill="#fff" stroke="#5f6368"></rect><text x="320" y="356" text-anchor="middle" font-weight="700">BIOS / UEFI</text><text x="320" y="375" text-anchor="middle" font-size="12">+ vTPM, Secure Boot</text>
+    <text x="230" y="420" text-anchor="middle" font-size="12" fill="#174ea6">L'OS croit être sur un vrai PC :</text>
+    <text x="230" y="438" text-anchor="middle" font-size="12" fill="#174ea6">tout ce matériel est simulé par l'hyperviseur</text>
+  </g>
+  
+  <line x1="430" y1="275" x2="530" y2="275" stroke="#5f6368" stroke-width="2" marker-end="url(#a)"></line>
+  <text x="480" y="265" text-anchor="middle" font-size="12" fill="#5f6368">stocké sous</text>
+  <text x="480" y="295" text-anchor="middle" font-size="12" fill="#5f6368">forme de</text>
+  
+  <text x="745" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#188038">Ce que voit le datastore</text>
+  <rect x="540" y="85" width="410" height="380" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+  <text x="560" y="112" font-size="13" fill="#0d652d" font-weight="700">📁 [ds-esx01] Golden-Image/</text>
+  <g font-size="13" fill="#3c4043">
+    <rect x="560" y="125" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="150" font-family="Consolas, monospace" font-weight="700">Golden-Image.vmx</text><text x="790" y="150" font-size="12">la config (texte)</text>
+    <rect x="560" y="172" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="197" font-family="Consolas, monospace" font-weight="700">Golden-Image.vmdk</text><text x="790" y="197" font-size="12">descripteur du disque</text>
+    <rect x="560" y="219" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="244" font-family="Consolas, monospace" font-weight="700">Golden-Image-flat.vmdk</text><text x="790" y="244" font-size="12">données du disque</text>
+    <rect x="560" y="266" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="291" font-family="Consolas, monospace" font-weight="700">Golden-Image.nvram</text><text x="790" y="291" font-size="12">mémoire BIOS/UEFI</text>
+    <rect x="560" y="313" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="338" font-family="Consolas, monospace" font-weight="700">*.vswp</text><text x="790" y="338" font-size="12">swap (VM allumée)</text>
+    <rect x="560" y="360" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="385" font-family="Consolas, monospace" font-weight="700">*-000001.vmdk / .vmsn</text><text x="790" y="385" font-size="12">snapshots</text>
+    <rect x="560" y="407" width="370" height="40" rx="5" fill="#fff" stroke="#188038"></rect><text x="572" y="432" font-family="Consolas, monospace" font-weight="700">vmware.log</text><text x="790" y="432" font-size="12">journal de la VM</text>
+  </g>
+  <text x="490" y="490" text-anchor="middle" font-size="13" fill="#5f6368">Une VM n'est qu'un dossier de fichiers : on peut la copier, la sauvegarder, la déplacer ou la cloner.</text>
+</svg>
