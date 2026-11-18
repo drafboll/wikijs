@@ -1,402 +1,238 @@
 ---
-title: 06 - Golden image, cycle de vie, profils et applications
-description: Bien construire et maintenir une golden image, Push Image, stratégie de test, profils utilisateurs (FSLogix, DEM), App Volumes, antivirus et activation en VDI
+title: 06 - vCenter : authentification Active Directory en LDAPS
+description: 
 published: 1
-date: 2026-11-11T13:48:19.619Z
+date: 2026-11-18T13:19:20.625Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:19.619Z
 ---
 
-# 06 - Golden image, cycle de vie, profils et applications
+# 06 - vCenter : authentification Active Directory en LDAPS
 
-> **Objectif de la page :** maîtriser ce qui fait **80 % du travail récurrent** d'un administrateur VDI : faire vivre la golden image (mises à jour, tests, déploiement, retour arrière) et construire un bureau non persistant où l'utilisateur retrouve pourtant **tout** : profil, réglages, applications et fichiers.
-{.is-info}
-
-**Parcours du cours :** [01 Bases](/hyperviseur/VDI/01-bases-virtualisation) ➜ [02 Infrastructure](/hyperviseur/VDI/02-infrastructure-lab) ➜ [03 VDI & Horizon](/hyperviseur/VDI/03-vdi-et-horizon) ➜ [04 Installation](/hyperviseur/VDI/04-installation-horizon) ➜ [05 Administration](/hyperviseur/VDI/05-horizon-administration) ➜ **06 Golden image** ➜ [07 Production](/hyperviseur/VDI/07-horizon-production)
-
----
-
-## 1. La golden image est un produit
-
-En VDI non persistante, la golden image n'est pas « une VM parmi d'autres » : c'est **le poste de travail de toute l'entreprise**. Une erreur dedans se retrouve chez tous les utilisateurs au prochain Push Image. On la traite donc comme un logiciel :
-
-| Principe | En pratique |
-|---|---|
-| **Versionnée** | `gold-v1`, `gold-v2`... avec une description de chaque changement |
-| **Documentée** | Un journal des modifications (changelog) dans le wiki |
-| **Testée** | Jamais de mise en production sans passage sur un pool de test |
-| **Réversible** | On garde le snapshot précédent pour revenir en arrière en quelques minutes |
-| **Minimaliste** | Seulement ce qui est commun à tous les utilisateurs |
-| **Reproductible** | Idéalement, on sait la reconstruire de zéro (procédure écrite ou automatisée) |
-
-### Exemple de journal des modifications
-
-| Version | Date | Auteur | Changements | Pools |
-|---|---|---|---|---|
-| gold-v1 | 11/11/2026 | moi | Win11 Ent 24H2, Tools, Agent 2412, OSOT | pool-w11-ic |
-| gold-v2 | 09/12/2026 | moi | Cumulatif de décembre, Edge à jour, FSLogix installé | pool-test ➜ pool-w11-ic |
-| gold-v3 | ... | ... | ... | ... |
+> **Objectif de la page :** se connecter au vCenter (et donc administrer l'ESXi) avec un compte AD comme `adm-vmw-afaye`, au lieu de `administrator@vsphere.local`, à travers une liaison **chiffrée (LDAPS)**.
+>
+> Prérequis : le certificat de DC01 délivré par LAB-ROOT-CA (page 05).
 
 ---
 
-## 2. Bien construire la golden image
+## 1. Comprendre avant de faire
 
-### 2.1 L'ordre d'installation complet
+### 1.1 Comment le vCenter vérifie un compte AD
 
-| Ordre | Composant | Remarque |
+Quand tu tapes `adm-vmw-afaye` et ton mot de passe, le vCenter ne connaît pas ce compte. Il pose la question au DC : *« ce compte, avec ce mot de passe, est-il valide ? »*. Cette demande s'appelle un **bind LDAP**.
+
+![Se connecter au vCenter en LDAPS](/vdi/06-ldaps-bind.svg)
+
+### 1.2 Pourquoi LDAP simple ne suffit pas
+
+| | LDAP | LDAPS |
 |---|---|---|
-| 1 | Windows + toutes les mises à jour | Installation propre depuis l'ISO, jamais une VM « recyclée » |
-| 2 | **VMware Tools** | Pilotes réseau, stockage, affichage |
-| 3 | Applications de base | Navigateur, Office, lecteur PDF, runtimes (.NET, VC++) |
-| 4 | Agents tiers | Antivirus / EDR (en mode VDI), **FSLogix**, outils de supervision |
-| 5 | **Horizon Agent** | Option Instant Clone |
-| 6 | **DEM Agent** (FlexEngine) | Si DEM est utilisé |
-| 7 | **App Volumes Agent** | **Toujours en dernier** parmi les agents Omnissa |
-| 8 | Optimisation OSOT | Analyze ➜ Optimize |
-| 9 | Finalisation | OSOT Finalize, arrêt propre, snapshot |
+| Port | 389 | **636** |
+| Chiffrement | ❌ Le mot de passe passe **en clair** | ✅ Tunnel **TLS**, comme HTTPS |
+| Vérification du serveur | ❌ Le vCenter ne sait pas s'il parle au vrai DC | ✅ Le DC présente un **certificat** |
+| Risque | Une machine qui écoute le réseau récupère le mot de passe de chaque admin | Aucun mot de passe lisible |
 
-> **Si tu mets à jour les Tools**, mets ensuite à jour (ou répare) l'Horizon Agent, puis les agents qui suivent. L'ordre des pilotes compte.
-{.is-warning}
+Ces mots de passe sont ceux des administrateurs vSphere, qui ont la main sur **toutes les VM**. Il faut chiffrer.
 
-### 2.2 Ce qu'on met dans l'image, et ce qu'on n'y met pas
+### 1.3 L'épinglage
 
-| ✅ Dans l'image | ❌ Pas dans l'image |
-|---|---|
-| Applications utilisées par (presque) tout le monde | Applications d'un seul service ➜ App Volumes ou applis publiées |
-| Polices, certificats racine de l'entreprise | Données utilisateur, fichiers sur le bureau |
-| Agents (Horizon, DEM, App Volumes, FSLogix, antivirus) | Comptes utilisateurs, profils locaux |
-| Paramètres machine (GPO de préférence) | Paramètres utilisateur ➜ DEM / GPO |
-| Pilotes d'impression universels | Logiciels « au cas où » |
-
-### 2.3 Les pièges spécifiques à certaines applications
-
-| Application | Piège | Solution |
-|---|---|---|
-| **Microsoft 365 Apps (Office)** | Activation par utilisateur liée à la machine : en non persistant, la machine change à chaque session | Installer avec l'**activation d'ordinateurs partagés** (*Shared Computer Activation*, paramètre de l'outil de déploiement Office) |
-| **OneDrive** | Installé par utilisateur par défaut, cache local perdu | Installation **par machine** (`/allusers`), Fichiers à la demande, et profil dans FSLogix |
-| **Teams** | Installation par utilisateur, cache lourd | Installation par machine pour la VDI, optimisation Horizon (page 05), cache dans le profil FSLogix |
-| **Navigateurs** | Mises à jour automatiques qui cassent la cohérence | Désactiver la mise à jour automatique, mettre à jour dans l'image |
-| **Applications du Store (Appx)** | Réinstallées pour chaque utilisateur, ralentissent la première ouverture de session | Supprimer les applications inutiles provisionnées (OSOT le propose) |
-| **Antivirus / EDR** | Chaque clone se déclare comme une nouvelle machine, scans simultanés sur tous les bureaux (tempête d'IO) | Mode VDI de l'éditeur, script d'inscription « non persistant », exclusions, signatures partagées |
-
-### 2.4 L'antivirus en VDI
-
-Un antivirus classique dans 300 bureaux qui démarrent à 8 h 30 et lancent tous une analyse et une mise à jour de signatures : le stockage s'effondre. Les bonnes pratiques :
-
-- utiliser le **mode VDI / non persistant** de l'éditeur (Microsoft Defender for Endpoint, CrowdStrike, SentinelOne... ont tous une procédure spécifique) ;
-- faire l'**analyse complète sur la golden image**, avant le snapshot, puis la marquer comme analysée ;
-- **signatures partagées** sur un partage réseau plutôt que téléchargées par chaque bureau ;
-- **exclusions** recommandées : conteneurs FSLogix (`*.vhd`, `*.vhdx`), processus des agents Horizon / App Volumes / DEM (listes fournies par Omnissa et l'éditeur) ;
-- **pas d'analyse planifiée** dans les clones (ils vivent quelques heures).
-
-### 2.5 L'activation de Windows
-
-Les clones doivent être activés automatiquement : on utilise **KMS** ou l'**activation via Active Directory** (ADBA). Les clés **MAK** (activation unique, comptée) sont à éviter : chaque clone consommerait une activation.
+Le vCenter n'est pas membre du domaine : il ne connaît pas LAB-ROOT-CA. On lui donne **le certificat de DC01 lui-même**, et il ne fera confiance qu'à celui-là, même pas à un autre certificat de la CA. C'est l'**épinglage** : le plus strict, mais il faut réimporter le certificat à chaque renouvellement (partie 8).
 
 ---
 
-## 3. Le cycle de mise à jour : Push Image
+## 2. Prérequis
 
-![Cycle de vie de l'image](/vdi/06-cycle-vie-image.svg)
-
-### 3.1 La procédure mensuelle
-
-1. **Allumer** la golden image (le pool continue de tourner sur `gold-v1` : l'image et les clones sont indépendants).
-2. **Mettre à jour** : Windows Update, applications, éventuellement Tools puis agents.
-3. **Réappliquer l'optimisation** : certaines mises à jour réactivent des services. Relance OSOT (*Analyze* puis *Optimize*).
-4. **Finaliser** : OSOT *Finalize*, puis `shutdown /s /t 0`.
-5. **Snapshot** `gold-v2` avec sa description.
-6. **Tester** sur un pool de test (§4).
-7. **Planifier le Push Image** sur le pool de production.
-8. **Mettre à jour le journal** des modifications.
-9. Une fois la nouvelle version validée en production (une à deux semaines), **supprimer les snapshots trop anciens** (on garde la version courante et la précédente).
-
-### 3.2 Le Push Image dans la console
-
-*Inventory ➜ Desktops ➜ pool ➜ Maintain ➜ Schedule* (le menu peut s'appeler « Push Image » selon la version)
-
-| Champ | Choix | Explication |
+| Élément | Valeur | Vérification |
 |---|---|---|
-| Golden image / Snapshot | `Golden Image` / `gold-v2` | Tu peux aussi changer de golden image (nouvelle VM) |
-| Start time | La nuit, ou « maintenant » en lab | |
-| **Force users to log off** | | Les utilisateurs connectés reçoivent un message, puis sont déconnectés après un délai. Tous les bureaux passent sur la nouvelle image rapidement. |
-| **Wait for users to log off** | ✅ en général | Les machines occupées ne sont remplacées qu'à la déconnexion de leur utilisateur. Aucune coupure, mais la transition peut prendre du temps. |
-| Stop at first error | ☑ | Si la publication échoue, rien n'est remplacé |
-| Logoff message / délai | « Mise à jour de votre bureau dans 15 minutes » | Si tu forces la déconnexion |
-
-Pendant l'opération, le pool affiche l'**image en cours** et l'**image en attente** (pending). Tu peux **annuler** tant que le remplacement n'a pas commencé.
-
-> **Image secondaire (déploiement « canari ») :** les versions récentes d'Horizon permettent de pousser une **image secondaire** sur quelques machines d'un pool de production seulement, de la faire tester par des utilisateurs volontaires, puis de la **promouvoir** en image principale. C'est la meilleure méthode quand on n'a pas de pool de test représentatif. Cherche « secondary image » dans la documentation de ta version.
-{.is-success}
-
-### 3.3 Le retour arrière
-
-Un problème découvert après le Push Image ? On refait simplement un Push Image **vers `gold-v1`**. C'est pour ça qu'on garde toujours le snapshot précédent.
-
-### 3.4 Garder une chaîne de snapshots courte
-
-Chaque snapshot ajoute un disque delta, et une longue chaîne ralentit la golden image et peut finir par poser des problèmes. Deux habitudes :
-- garder **2 à 3 snapshots** maximum (courant, précédent, éventuellement un « avant changement majeur ») ;
-- une à deux fois par an, **cloner** la golden image vers une nouvelle VM (le clone a un disque « à plat », sans chaîne), ou la reconstruire de zéro, surtout lors d'un changement de version majeure de Windows.
-
-### 3.5 Automatiser la construction (pour aller plus loin)
-
-Les équipes VDI matures ne construisent plus leur image à la main :
-
-| Outil | Rôle |
-|---|---|
-| **HashiCorp Packer** (provider vSphere) | Construit la VM de zéro à partir de l'ISO, de façon reproductible |
-| MDT / MECM (SCCM) task sequences | Installation et configuration automatisées |
-| Scripts PowerShell, Chocolatey, winget | Installation des applications |
-| OSOT en ligne de commande | Optimisation scriptée |
+| Certificat de DC01 | Délivré par LAB-ROOT-CA, nom `DC01.lab.lan` | Page 05 |
+| Comptes et groupes | `svc-vcenter-ldap`, `GG-VMW-Admins`, `GG-VMW-ReadOnly`, `adm-vmw-afaye` | Page 04 |
+| DNS du vCenter | **192.168.50.10 uniquement** | Console de la VM vCenter (F2), page 03 |
+| Enregistrements DNS | `vcenter`, `esx01`, `dc01`, avec PTR | Page 04 |
 
 ---
 
-## 4. Tester avant de déployer
+## 3. Tester LDAPS depuis DC01
 
-### 4.1 Le pool de test
+On utilise **ldp.exe**, l'outil graphique de test LDAP de Windows (menu Démarrer : tape `ldp`).
 
-Crée un deuxième pool, `pool-w11-test`, de 1 ou 2 machines, sur la même golden image, avec des droits pour un groupe `GRP-VDI-TEST` (toi et quelques utilisateurs pilotes). Chaque nouvelle version passe **d'abord** sur ce pool.
+1. **Connexion > Se connecter…**
+2. Serveur **`dc01.lab.lan`** (le nom et non l'IP : le certificat est émis pour ce nom), port **`636`**, ☑ **SSL** > **OK**.
 
-### 4.2 La recette (checklist de validation)
+![ldp - connexion 636 SSL](/vcenter_ldaps/09-ldp-connexion-636-ssl.png)
 
-| ✓ | Test |
+![ldp - résultat](/vcenter_ldaps/10-ldp-resultat.png)
+
+| Ligne affichée | Signification |
 |---|---|
-| ☐ | Le pool se publie et les machines passent à *Available* |
-| ☐ | Connexion en Blast, en interne et (si disponible) via l'UAG |
-| ☐ | Durée d'ouverture de session normale (pas de régression) |
-| ☐ | Profil retrouvé (fond d'écran, favoris, signature Outlook...) |
-| ☐ | Applications principales : Office, navigateur, applications métier |
-| ☐ | Impression (redirection et imprimantes réseau) |
-| ☐ | Teams : appel audio / vidéo optimisé |
-| ☐ | USB, presse-papiers, lecteurs clients selon les politiques |
-| ☐ | Antivirus actif et inscrit correctement |
-| ☐ | Déconnexion / reconnexion, fermeture de session |
-| ☐ | Aucun nouvel événement d'erreur dans la console |
+| `ldap_sslinit("dc01.lab.lan", 636, 1)` | Connexion sur le port 636, SSL activé |
+| `Host supports SSL, SSL cipher strength = 256 bits` | Le tunnel TLS est établi |
+| `Established connection to dc01.lab.lan` | Le certificat est accepté : nom correct, chaîne de confiance |
+| `dnsHostName: DC01.lab.lan` | Le DC répond **à l'intérieur** du tunnel |
+
+✅ **LDAPS fonctionne.**
 
 ---
 
-## 5. Les profils utilisateurs : retrouver ses affaires sur un bureau jetable
+## 4. Exporter le certificat du DC
 
-![Couches du bureau](/vdi/06-couches-bureau.svg)
+1. **certlm.msc > Personnel > Certificats** > clic droit sur **DC01.lab.lan** (⚠️ pas sur LAB-ROOT-CA) > **Toutes les tâches > Exporter…** > **Suivant**.
+2. **Non, ne pas exporter la clé privée** > **Suivant**. La clé privée ne quitte jamais le DC.
+3. **Codé à base 64 X.509 (.CER)** > **Suivant**.
+4. Fichier **`C:\Temp\dc01.cer`** > **Suivant**.
 
-Dans un pool flottant, la VM est détruite à chaque déconnexion. Pour que l'utilisateur retrouve son environnement, on stocke à l'extérieur :
+![Export - nom du fichier](/vcenter_ldaps/01-export-nom-fichier.png)
 
-| Quoi | Exemple | Solution |
+5. Vérifie le résumé (*Exporter les clés : Non*, *X.509 encodé en base 64*) > **Terminer**.
+
+![Export - résumé](/vcenter_ldaps/02-export-resume.png)
+
+![Export - réussi](/vcenter_ldaps/03-export-reussi.png)
+
+6. Copie `dc01.cer` sur le PC depuis lequel tu ouvres le vSphere Client.
+
+---
+
+## 5. Déclarer l'AD dans le vCenter
+
+### 5.1 Ajouter la source d'identité
+
+1. Connecte-toi sur `https://192.168.50.12/ui` avec **administrator@vsphere.local**.
+2. **Menu ☰ > Administration > Single Sign-On > Configuration** > onglet **Fournisseur d'identité** > **Sources d'identité** > **AJOUTER**.
+
+| Champ | Valeur | Explication |
 |---|---|---|
-| **Fichiers** | Documents, Bureau, Images | Redirection de dossiers (GPO) vers un serveur de fichiers, ou OneDrive |
-| **Profil Windows** | Registre utilisateur (`NTUSER.DAT`), `AppData`, caches Outlook / Teams / OneDrive | **FSLogix Profile Container** |
-| **Paramètres ciblés** | Réglages d'une application, imprimante par défaut, lecteurs réseau | **DEM** |
-| **Applications** | Logiciels d'un service | **App Volumes** |
+| Type | **Active Directory sur LDAP** | « Authentification Windows intégrée » est dépréciée et oblige à joindre le vCenter au domaine |
+| Nom | `LAB` | |
+| DN de base utilisateurs | `DC=LAB,DC=lan` | |
+| DN de base groupes | `DC=LAB,DC=lan` | |
+| Nom de domaine | `LAB.lan` | |
+| Alias de domaine | `LAB` | Permet aussi `LAB\adm-vmw-afaye` |
+| Nom d'utilisateur | `svc-vcenter-ldap@LAB.lan` | Compte de service **sans privilège** |
+| Connexion à | **Contrôleurs de domaine spécifiques** | Voir l'encadré |
+| URL du serveur principal | **`ldaps://dc01.lab.lan:636`** | `ldaps` avec un **s**, et le **nom** du DC |
+| URL secondaire | vide | Plus tard `ldaps://dc02.lab.lan:636` |
+| Certificats (pour LDAPS) | **PARCOURIR** > `dc01.cer` | |
 
-### 5.1 Les options de gestion de profil
+![vCenter - Ajouter une source d'identité](/vcenter_ldaps/11-vcenter-ajout-source-identite.png)
 
-| Solution | Principe | Avantages | Limites |
-|---|---|---|---|
-| Profil itinérant Windows (roaming) | Le profil est copié depuis un partage à l'ouverture, recopié à la fermeture | Natif | **Lent** (copie de milliers de fichiers), corruptions : à éviter en VDI |
-| Profil obligatoire (mandatory) | Profil en lecture seule, identique pour tous | Très rapide | Aucune personnalisation conservée (souvent combiné avec DEM) |
-| **FSLogix Profile Container** | Le profil entier est dans un disque VHDX sur un partage, **monté** à l'ouverture de session (pas de copie) | Rapide, transparent pour les applications, gère bien Outlook / Teams / OneDrive | Un VHDX par utilisateur à stocker et sauvegarder |
-| **DEM** (personnalisation) | Sauvegarde et restaure des réglages précis (clés de registre, fichiers de config) | Granulaire, multi-OS, migrations faciles | Il faut définir ce qu'on sauvegarde |
-| App Volumes Writable Volume | Disque inscriptible par utilisateur, monté à la connexion | Conserve les applications installées par l'utilisateur | Plus rare aujourd'hui |
+3. Le bandeau jaune *« Cette connexion LDAP n'est pas sécurisée »* disparaît. **AJOUTER**.
 
-> **Le couple le plus fréquent en entreprise :** **FSLogix** pour le profil + **DEM** pour l'environnement (lecteurs, imprimantes, Smart Policies). FSLogix est fourni par Microsoft avec la plupart des licences Microsoft 365 / Windows Enterprise : vérifie les droits de ton entreprise.
-{.is-info}
+> **« Contrôleurs spécifiques » ou « tout contrôleur du domaine » ?** Avec « tout contrôleur », le vCenter trouve les DC par le DNS et il faudrait le certificat de chacun. Avec un seul DC, « spécifiques » est plus prévisible et plus lisible en dépannage. C'est aussi le choix courant en production, avec deux DC en principal et secondaire.
 
-### 5.2 TP : mettre en place FSLogix dans ton lab
+### 5.2 LAB par défaut
 
-**1. Le partage sur SRV-GRP3** (en lab, sur le DC ; en production, sur un serveur de fichiers dédié ou un NAS) :
+![vCenter - Sources d'identité](/vcenter_ldaps/12-vcenter-sources-identite.png)
 
-```powershell
-New-Item -ItemType Directory -Path "C:\Profils"
-New-SmbShare -Name "profils$" -Path "C:\Profils" -FullAccess "Tout le monde"   # les droits fins sont sur NTFS
+Sélectionne **LAB** > **DÉFINIR COMME VALEUR PAR DÉFAUT** > **OK**.
 
-# Droits NTFS recommandés pour FSLogix
-$acl = Get-Acl "C:\Profils"
-$acl.SetAccessRuleProtection($true, $false)   # coupe l'héritage
-$rules = @(
-  New-Object Security.AccessControl.FileSystemAccessRule("Administrateurs","FullControl","ContainerInherit,ObjectInherit","None","Allow"),
-  New-Object Security.AccessControl.FileSystemAccessRule("SYSTEM","FullControl","ContainerInherit,ObjectInherit","None","Allow"),
-  New-Object Security.AccessControl.FileSystemAccessRule("CREATOR OWNER","Modify","ContainerInherit,ObjectInherit","InheritOnly","Allow"),
-  New-Object Security.AccessControl.FileSystemAccessRule("SRV-GRP3\GRP-VDI-USERS","Modify","None","None","Allow")
-)
-$rules | ForEach-Object { $acl.AddAccessRule($_) }
-Set-Acl "C:\Profils" $acl
+![vCenter - Définir par défaut](/vcenter_ldaps/13-vcenter-definir-par-defaut.png)
+
+Le type affiche **ActiveDirectory (Par défaut)** : tu peux te connecter en tapant simplement `adm-vmw-afaye`.
+
+![vCenter - Source par défaut](/vcenter_ldaps/14-vcenter-source-par-defaut.png)
+
+---
+
+## 6. Donner les droits aux groupes AD
+
+### 6.1 Les autorisations globales
+
+1. **Menu ☰ > Administration > Contrôle d'accès > Autorisations globales** > **AJOUTER**.
+2. Domaine **LAB.lan**, groupe **GG-VMW-Admins**, rôle **Administrateur**, ☑ **Propager vers les enfants** > **OK**.
+
+![Autorisation globale - GG-VMW-Admins](/vcenter_ldaps/15-autorisation-globale-admins.png)
+
+> Si la recherche trouve tes groupes, c'est la preuve que le vCenter lit bien l'AD **en LDAPS**.
+
+![Autorisations globales - après ajout des admins](/vcenter_ldaps/16-autorisations-globales-liste.png)
+
+3. Recommence avec **GG-VMW-ReadOnly**, rôle **Lecture seule**, ☑ Propager.
+
+![Autorisation globale - GG-VMW-ReadOnly](/vcenter_ldaps/17-autorisation-globale-readonly.png)
+
+![Autorisations globales - résultat](/vcenter_ldaps/18-autorisations-globales-finales.png)
+
+> **Globale ou sur l'inventaire ?** Une autorisation **globale** couvre tout, y compris étiquettes, licences, bibliothèques de contenu et vCenter liés. Une autorisation **sur l'objet vCenter** couvre seulement son inventaire. Pour Horizon, on utilisera la seconde (page 08).
+
+> **Piège rencontré :** la page *Autorisations globales* s'est affichée **vide**, sans bouton. C'est un bug d'affichage : **Ctrl + F5**, dézoome, ou ouvre une fenêtre privée.
+
+![Piège - autorisations globales vides](/vcenter_ldaps/28-piege-autorisations-vides.png)
+
+### 6.2 (Facultatif) Administrer aussi le SSO
+
+Pour qu'un admin AD gère aussi les sources d'identité et les comptes `vsphere.local` : **Single Sign-On > Utilisateurs et groupes > Groupes > Administrators > AJOUTER DES MEMBRES** > domaine `LAB.lan`, groupe `GG-VMW-Admins`.
+
+---
+
+## 7. Tester
+
+1. Déconnecte-toi, puis connecte-toi avec **`adm-vmw-afaye`**.
+
+![Connexion vCenter](/vcenter_ldaps/19-connexion-vcenter.png)
+
+2. **adm-vmw-afaye@lab.lan** s'affiche en haut à droite, avec tout l'inventaire.
+
+![Connecté avec le compte AD](/vcenter_ldaps/20-connecte-adm-vmw.png)
+
+**Le vCenter est administré avec un compte AD, à travers une liaison LDAPS chiffrée.** L'ESXi aussi : l'autorisation donnée au vCenter descend jusqu'à l'hôte. C'est pour ça qu'on ne joint pas l'ESXi au domaine (page 03, partie 4.5).
+
+> Garde le mot de passe de **`administrator@vsphere.local`** dans ton coffre : c'est le compte de secours si l'AD ou le certificat pose problème.
+
+---
+
+## 8. Renouveler le certificat de DC01 chaque année
+
+### 8.1 Le problème
+
+Le certificat de DC01 expire le **17/11/2027**. L'inscription automatique en demande un nouveau **6 semaines avant**, vers le 6 octobre 2027. Or :
+
+```
+DC01 reçoit son nouveau certificat ──► LDAPS l'utilise immédiatement
+                                             │
+vCenter n'épingle que l'ANCIEN ──────────────┴──► ❌ plus aucune connexion AD
 ```
 
-> Les noms de groupes intégrés (« Administrateurs », « Tout le monde ») dépendent de la langue de Windows. Sur un Windows anglais : « Administrators », « Everyone ». Le principe : les utilisateurs peuvent **créer** leur dossier à la racine (ce dossier seulement), et n'ont des droits que sur **leurs propres** dossiers (CREATOR OWNER).
-{.is-warning}
+**La solution : renouveler toi-même avant**, au moment que tu choisis, et réimporter dans la foulée.
 
-**2. Dans la golden image :** installe l'agent FSLogix (`FSLogixAppsSetup.exe`, téléchargé sur le site de Microsoft), puis configure-le. Par GPO (ADMX FSLogix) ou directement dans le registre :
+> 📅 **Rappel dans ton agenda : fin septembre 2027.**
 
-```powershell
-$k = "HKLM:\SOFTWARE\FSLogix\Profiles"
-New-Item $k -Force | Out-Null
-New-ItemProperty $k -Name Enabled -Value 1 -PropertyType DWord -Force
-New-ItemProperty $k -Name VHDLocations -Value "\\srv-grp3.srv-grp3.lan\profils$" -PropertyType MultiString -Force
-New-ItemProperty $k -Name VolumeType -Value "VHDX" -PropertyType String -Force
-New-ItemProperty $k -Name SizeInMBs -Value 30000 -PropertyType DWord -Force             # 30 Go max (dynamique)
-New-ItemProperty $k -Name IsDynamic -Value 1 -PropertyType DWord -Force                # grossit à l'usage
-New-ItemProperty $k -Name DeleteLocalProfileWhenVHDShouldApply -Value 1 -PropertyType DWord -Force
-New-ItemProperty $k -Name FlipFlopProfileDirectoryName -Value 1 -PropertyType DWord -Force   # dossiers nommés "utilisateur_SID"
-```
+### 8.2 La procédure
 
-| Valeur | Rôle |
-|---|---|
-| `Enabled` | Active les conteneurs de profil |
-| `VHDLocations` | Où stocker les VHDX (plusieurs chemins possibles) |
-| `VolumeType` | VHDX (recommandé) ou VHD |
-| `SizeInMBs` / `IsDynamic` | Taille maximale du disque / allocation dynamique (comme du thin) |
-| `DeleteLocalProfileWhenVHDShouldApply` | Supprime un éventuel profil local en conflit |
-| `FlipFlopProfileDirectoryName` | Nom de dossier lisible (`vdiuser1_S-1-5-...` au lieu de `S-1-5-..._vdiuser1`) |
+1. **Renouveler :** sur DC01, `certlm.msc` > clic droit sur **DC01.lab.lan** > **Toutes les tâches > Opérations avancées > Renouveler ce certificat avec une nouvelle clé…** > **Inscrire**. **F5** : le certificat expire maintenant en 2028. Note la nouvelle empreinte.
+2. **Tester :** `ldp.exe`, `dc01.lab.lan`, 636, SSL : **Established connection**.
+3. **Exporter :** comme en partie 4, vers `C:\Temp\dc01-2028.cer`.
+4. **Remplacer dans le vCenter** (connecté en **administrator@vsphere.local**, car la connexion AD est peut-être déjà coupée) : **Sources d'identité** > **LAB** > **MODIFIER** > supprime l'ancien certificat > **PARCOURIR** > `dc01-2028.cer` > ressaisis le mot de passe de `svc-vcenter-ldap` si demandé > **ENREGISTRER**.
+5. **Vérifier :** reconnecte-toi en `adm-vmw-afaye`.
 
-**3.** Optimise, arrête, snapshot `gold-v2`, **Push Image**.
-
-**4. Test :** connecte `vdiuser1`, change le fond d'écran, crée un favori dans le navigateur, déconnecte-toi. Dans `C:\Profils` sur SRV-GRP3, un dossier `vdiuser1_S-1-5-...` contient `Profile_vdiuser1.vhdx`. Reconnecte-toi (sur un autre clone) : le fond d'écran et le favori sont là. 🎉
-
-> **Exclure les administrateurs :** les comptes du groupe local « FSLogix Profile Exclude List » n'utilisent pas de conteneur. Mets-y les comptes d'administration pour qu'ils gardent un profil local.
-{.is-info}
-
-### 5.3 Dynamic Environment Manager (DEM)
-
-DEM se compose de :
-
-| Élément | Rôle |
-|---|---|
-| **Console de gestion DEM** | Où l'on crée les configurations (sur un poste d'administration) |
-| **Partage de configuration** | `\\serveur\dem-config$` : les fichiers de config créés par la console, lus par les agents |
-| **Partage d'archives de profils** | `\\serveur\dem-profiles$\%username%` : les réglages sauvegardés de chaque utilisateur |
-| **Agent FlexEngine** | Dans la golden image, applique la configuration à l'ouverture et la sauvegarde à la fermeture de session |
-| GPO DEM | Indique aux agents où sont les partages |
-
-Ce que DEM sait faire :
-
-| Fonction | Exemple |
-|---|---|
-| **Personnalisation** (*Personalization*) | Sauvegarder et restaurer les réglages de Notepad++, des signatures Outlook, des paramètres Windows (souris, clavier, région). Des modèles prêts à l'emploi existent pour les applications courantes. |
-| **Environnement utilisateur** (*User Environment*) | Lecteurs réseau, imprimantes, raccourcis, associations de fichiers, variables d'environnement, clés de registre, paramètres ADMX, élévation de privilèges ciblée |
-| **Conditions** | Appliquer selon le groupe AD, le nom du poste client, l'adresse IP du client, l'heure, le type de connexion... |
-| **Horizon Smart Policies** | Selon le contexte : activer ou désactiver USB, presse-papiers, lecteurs clients, impression, limiter la bande passante. Par exemple : « depuis l'extérieur via UAG, pas de presse-papiers sortant ». |
-| **Migration** | Faciliter le passage de Windows 10 à 11, ou d'Office 2019 à M365, en ne gardant que les bons réglages |
-
-> DEM existe en édition **Standard** (personnalisation de base) et **Enterprise** (toutes les fonctions, dont les Smart Policies), selon l'édition d'Horizon achetée.
-{.is-info}
+> **Si tu as oublié :** un matin, `adm-vmw-afaye` échoue mais `administrator@vsphere.local` marche. DC01 a déjà son nouveau certificat : fais simplement les étapes 3 à 5.
 
 ---
 
-## 6. App Volumes : livrer les applications à la demande
+## 9. Dépannage
 
-### 6.1 Le principe
-
-Au lieu d'installer une application dans la golden image (pour tout le monde) ou dans chaque VM (impossible en non persistant), App Volumes :
-
-1. **capture** l'application une fois sur une machine de packaging, dans un disque virtuel (le **package**) ;
-2. **attache** ce disque, en lecture seule, au bureau de l'utilisateur à l'ouverture de session, selon ses groupes AD ;
-3. **fusionne** le contenu dans Windows : l'application apparaît comme installée (menu Démarrer, registre, fichiers).
-
-### 6.2 Les composants
-
-| Composant | Rôle |
-|---|---|
-| **App Volumes Manager** | Serveur Windows + base SQL Server. Console web, gère les packages et les affectations, parle à vCenter pour attacher les disques. Au moins 2 en production derrière un répartiteur. |
-| **App Volumes Agent** | Dans la golden image (installé en dernier) et sur la machine de packaging |
-| **Machine de packaging** | VM propre (même OS que la golden image) servant à capturer les applications |
-| **Packages** | Disques VMDK (ou VHD) sur les datastores, en lecture seule |
-| **Applications** | Regroupent les versions successives d'un même logiciel. Le marqueur **CURRENT** désigne la version livrée. |
-| **Assignments** | Affectation d'une application à un groupe AD, un utilisateur, un ordinateur ou une OU |
-| **Writable Volumes** | Disque inscriptible par utilisateur (optionnel) |
-
-### 6.3 Les avantages
-
-- Une golden image **plus petite et plus stable** (moins de mises à jour).
-- Une application **mise à jour une seule fois**, pour tous ses utilisateurs, en changeant le marqueur CURRENT, avec retour arrière immédiat.
-- Une seule golden image pour des services aux besoins très différents.
-
-### 6.4 Les limites
-
-- Certaines applications s'y prêtent mal : pilotes noyau, antivirus, applications intégrées à Windows, services qui doivent démarrer avant l'ouverture de session.
-- Une infrastructure de plus à maintenir (serveurs, base SQL, packaging).
-
-### 6.5 Les alternatives
-
-| Alternative | Remarque |
-|---|---|
-| Applications publiées (RDS) | L'application tourne ailleurs, seule la fenêtre est affichée |
-| **MSIX app attach** (Microsoft) | Principe similaire, natif Microsoft, surtout dans l'écosystème Azure |
-| Liquidware FlexApp, Numecent Cloudpaging | Solutions tierces |
-| Plusieurs golden images | Simple, mais multiplie la maintenance |
-
-### 6.6 Grille de décision : où mettre une application ?
-
-| Question | Si oui ➜ |
-|---|---|
-| (Presque) tout le monde l'utilise ? | **Golden image** |
-| Un service ou un groupe de personnes ? | **App Volumes** |
-| Application ancienne, lourde, ou à isoler ? | **Application publiée (RDS)** |
-| Installée par l'utilisateur lui-même ? | Pool **persistant**, ou **Writable Volume** |
-| Application web ? | Rien à installer : le navigateur |
-
----
-
-## 7. Plusieurs golden images : une stratégie
-
-Une entreprise moyenne a généralement :
-
-| Golden image | Pools | Usage |
+| Symptôme | Cause probable | Solution |
 |---|---|---|
-| `GI-W11-STANDARD` | pool-standard, pool-test | Tous les utilisateurs bureautiques (+ App Volumes) |
-| `GI-W11-DEV` | pool-dev (dédié, persistant ou non) | Développeurs, outils lourds |
-| `GI-W11-GPU` | pool-cad | CAO / 3D avec vGPU |
-| `GI-WS2022-RDS` | farm-rds | Applications publiées |
-
-L'objectif est d'en avoir **le moins possible** : chaque golden image doit être mise à jour, testée et documentée chaque mois.
-
----
-
-## 8. Quiz
-
-<details>
-<summary><b>1. Dans quel ordre installe-t-on Tools, Horizon Agent, DEM Agent et App Volumes Agent ?</b></summary>
-
-VMware Tools ➜ Horizon Agent ➜ DEM Agent ➜ App Volumes Agent (toujours en dernier).
-</details>
-
-<details>
-<summary><b>2. Différence entre « Force users to log off » et « Wait for users to log off » lors d'un Push Image ?</b></summary>
-
-Force : les utilisateurs sont prévenus puis déconnectés après un délai, la bascule est rapide. Wait : les machines occupées ne sont remplacées qu'à la déconnexion naturelle de leur utilisateur, sans coupure, mais plus lentement.
-</details>
-
-<details>
-<summary><b>3. Le Push Image de gold-v2 provoque des plantages d'une application. Que fais-tu ?</b></summary>
-
-Un nouveau Push Image vers gold-v1 (retour arrière), puis j'analyse le problème sur la golden image ou sur le pool de test.
-</details>
-
-<details>
-<summary><b>4. Pourquoi les profils itinérants classiques sont-ils déconseillés en VDI ?</b></summary>
-
-Ils copient tout le profil à l'ouverture et à la fermeture de session : c'est lent, ça charge le réseau et le stockage, et ça se corrompt facilement. FSLogix monte un disque à la place, sans copie.
-</details>
-
-<details>
-<summary><b>5. Où mettre une application utilisée uniquement par le service comptabilité ?</b></summary>
-
-Dans App Volumes (package affecté au groupe AD de la comptabilité), ou en application publiée. Pas dans la golden image commune.
-</details>
-
-<details>
-<summary><b>6. Pourquoi faut-il l'activation d'ordinateurs partagés pour Microsoft 365 Apps en VDI non persistante ?</b></summary>
-
-Parce que l'activation classique est liée à la machine, qui change à chaque session. L'activation partagée lie la licence à l'utilisateur et fonctionne sur des machines éphémères.
-</details>
-
-<details>
-<summary><b>7. Pourquoi ne pas utiliser une clé MAK pour activer les clones ?</b></summary>
-
-Chaque clone consommerait une activation du quota MAK. On utilise KMS ou l'activation par Active Directory.
-</details>
+| *« Cannot connect to one or more of the provided external server URLs »* | `ldap://` au lieu de `ldaps://`, IP au lieu du nom, ou mauvais certificat | `ldaps://dc01.lab.lan:636` avec le certificat **DC01.lab.lan** |
+| Même erreur, URL correcte | Le vCenter ne résout pas `dc01.lab.lan` | DNS du vCenter = `192.168.50.10` (console F2) |
+| ldp : *« Cannot open connection »* sur 636 | DC01 n'a pas de certificat serveur | Page 05, partie 4.4 |
+| Groupe AD introuvable dans « Ajouter une autorisation » | Mauvais domaine sélectionné, ou source en panne | Domaine **LAB.lan** |
+| Plus aucune connexion AD du jour au lendemain | Le certificat de DC01 a été renouvelé | Partie 8.2, étapes 3 à 5 |
 
 ---
 
-⬅ [05 - Administration](/hyperviseur/VDI/05-horizon-administration) · **Page suivante :** [07 - Horizon en production et dépannage](/hyperviseur/VDI/07-horizon-production) ➜
+## 10. Quiz
+
+<details><summary><b>1. Pourquoi LDAPS plutôt que LDAP ?</b></summary> <p>En LDAP sur le port 389, le mot de passe des administrateurs vSphere passe en clair sur le réseau. LDAPS chiffre la liaison et vérifie l'identité du DC par son certificat.</p></details>
+
+<details><summary><b>2. Pourquoi mettre dc01.lab.lan et pas 192.168.50.10 dans l'URL ?</b></summary> <p>Le certificat est émis pour le nom DC01.lab.lan. Avec l'IP, le nom ne correspond pas et la connexion TLS est refusée.</p></details>
+
+<details><summary><b>3. Qu'est-ce que l'épinglage, et quel est son inconvénient ?</b></summary> <p>Le vCenter ne fait confiance qu'à ce certificat précis. C'est très strict, mais il faut le réimporter à chaque renouvellement du certificat de DC01.</p></details>
+
+<details><summary><b>4. Quels droits a svc-vcenter-ldap dans l'AD ?</b></summary> <p>Aucun en particulier : il lit l'annuaire, ce que n'importe quel utilisateur du domaine peut faire.</p></details>
+
+<details><summary><b>5. Pourquoi donner les droits à GG-VMW-Admins plutôt qu'à adm-vmw-afaye ?</b></summary> <p>Pour gérer les accès depuis l'AD : on ajoute ou retire quelqu'un du groupe, sans toucher au vCenter.</p></details>
+
+---
+
+[⬅ 05 - La PKI](/fr/hyperviseur/VDI/05-pki) · [Sommaire](/fr/hyperviseur/VDI/00-sommaire) · Page suivante : [07 - Sécuriser vCenter et l'AD ➜](/fr/hyperviseur/VDI/07-securiser-vcenter-ad)
