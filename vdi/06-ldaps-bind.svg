@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#188038"></path></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"></path></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"></path></marker>
+  </defs>
+  <rect width="1000" height="470" fill="#ffffff"></rect>
+  <text x="500" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#202124">Se connecter au vCenter avec un compte AD, en LDAPS</text>
+
+  <g font-size="12" text-anchor="middle">
+    <rect x="30" y="80" width="190" height="120" rx="10" fill="#f1f3f4" stroke="#5f6368" stroke-width="2"></rect>
+    <text x="125" y="108" font-size="14" font-weight="700" fill="#3c4043">💻 Navigateur</text>
+    <text x="125" y="130" fill="#3c4043">vSphere Client</text>
+    <text x="125" y="152" font-family="Consolas, monospace" fill="#3c4043">adm-vmw-afaye</text>
+    <text x="125" y="172" fill="#3c4043">+ mot de passe</text>
+
+    <rect x="400" y="80" width="200" height="120" rx="10" fill="#e6f4ea" stroke="#188038" stroke-width="2"></rect>
+    <text x="500" y="108" font-size="14" font-weight="700" fill="#0d652d">vCenter</text>
+    <text x="500" y="130" fill="#3c4043">192.168.50.12</text>
+    <text x="500" y="152" fill="#3c4043">source d'identité LAB</text>
+    <text x="500" y="172" fill="#3c4043">certificat de DC01 épinglé</text>
+
+    <rect x="780" y="80" width="190" height="120" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"></rect>
+    <text x="875" y="108" font-size="14" font-weight="700" fill="#a50e0e">DC01.lab.lan</text>
+    <text x="875" y="130" fill="#3c4043">Active Directory</text>
+    <text x="875" y="152" fill="#3c4043">certificat LAB-ROOT-CA</text>
+    <text x="875" y="172" fill="#3c4043">port 636 ouvert</text>
+  </g>
+
+  <line x1="220" y1="140" x2="395" y2="140" stroke="#1a73e8" stroke-width="3" marker-end="url(#b)"></line>
+  <text x="308" y="130" text-anchor="middle" font-size="12" font-weight="700" fill="#174ea6">① HTTPS 443</text>
+
+  <line x1="600" y1="105" x2="775" y2="105" stroke="#188038" stroke-width="3" marker-end="url(#g)"></line>
+  <text x="688" y="96" text-anchor="middle" font-size="12" font-weight="700" fill="#0d652d">② LDAPS 636 (TLS)</text>
+  <line x1="775" y1="170" x2="600" y2="170" stroke="#188038" stroke-width="3" marker-end="url(#g)"></line>
+  <text x="688" y="190" text-anchor="middle" font-size="12" font-weight="700" fill="#0d652d">④ « oui » + ses groupes</text>
+
+  <rect x="400" y="225" width="570" height="46" rx="8" fill="#fce8e6" stroke="#d93025" stroke-dasharray="6 4"></rect>
+  <line x1="600" y1="248" x2="775" y2="248" stroke="#d93025" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#r)"></line>
+  <text x="420" y="253" font-size="12" font-weight="700" fill="#a50e0e">✗ LDAP 389</text>
+  <text x="790" y="253" font-size="12" fill="#a50e0e">mot de passe en clair : refusé</text>
+
+  <g font-size="12" fill="#3c4043">
+    <text x="30" y="305" font-size="14" font-weight="700">Ce qui se passe</text>
+    <text x="30" y="328">① Tu te connectes au vSphere Client avec ton compte AD.</text>
+    <text x="30" y="350">② Le vCenter ouvre un tunnel TLS vers dc01.lab.lan:636 et vérifie que le DC présente exactement le certificat épinglé.</text>
+    <text x="30" y="372">③ Dans le tunnel, il cherche ton compte avec svc-vcenter-ldap, puis vérifie ton mot de passe (bind LDAP).</text>
+    <text x="30" y="394">④ Le DC confirme et renvoie tes groupes : GG-VMW-Admins ➜ autorisation globale « Administrateur ».</text>
+    <text x="30" y="428" font-weight="700" fill="#a50e0e">⚠ Le certificat de DC01 est épinglé : à chaque renouvellement (fin septembre 2027), il faut le réimporter dans le vCenter.</text>
+    <text x="30" y="450" fill="#5f6368">Compte de secours si l'AD ou le certificat pose problème : administrator@vsphere.local.</text>
+  </g>
+</svg>
