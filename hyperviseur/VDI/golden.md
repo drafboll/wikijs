@@ -2,7 +2,7 @@
 title: 09 - La golden image Windows 11
 description: 
 published: 1
-date: 2026-11-18T13:23:42.572Z
+date: 2026-11-19T21:27:53.686Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:23:42.572Z
