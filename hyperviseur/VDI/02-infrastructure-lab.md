@@ -2,7 +2,7 @@
 title: 02 - La VDI et Omnissa Horizon
 description: 
 published: 1
-date: 2026-11-18T13:10:39.989Z
+date: 2026-11-19T21:26:47.914Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:45:14.660Z
