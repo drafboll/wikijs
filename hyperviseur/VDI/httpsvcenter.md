@@ -2,293 +2,249 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-19T21:23:28.123Z
+date: 2026-11-19T21:29:25.159Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
 ---
 
-# 07 - Sécuriser le vCenter et l'Active Directory
+# Remplacer le certificat du vCenter par un certificat LAB-ROOT-CA
 
-> **Objectif de la page :**
-> 1. donner au vCenter un **certificat émis par LAB-ROOT-CA** : plus d'alerte dans le navigateur, et Horizon lui fera confiance sans exception ;
-> 2. **durcir** le vCenter, l'ESXi et l'AD, maintenant que tout passe en LDAPS.
+> **Objectif** : le vCenter (`https://192.168.50.12` et `https://vcenter.lab.lan`) présente un certificat délivré par **LAB-ROOT-CA**. Le navigateur, Horizon et les scripts lui font alors confiance sans alerte.
 >
-> 📸 *Page à illustrer avec tes captures au moment où tu la réalises.*
+> **Horizon n'en a pas besoin pour fonctionner** : il accepte aussi le certificat actuel signé par la VMCA. Cette procédure est un exercice à part, à faire **au calme**, le vCenter sauvegardé.
 
 ---
 
-## 1. Un certificat LAB-ROOT-CA pour le vCenter
+## 0. Comprendre avant de commencer
 
-### 1.1 Pourquoi
+### 0.1 Le certificat concerné
+Le vCenter a plusieurs certificats. On remplace uniquement le **certificat SSL de machine**, celui que voient le navigateur et Horizon sur le port 443. Les certificats internes et ceux de l'ESXi ne changent pas : ils restent signés par la VMCA.
 
-Aujourd'hui, l'interface web du vCenter présente un certificat signé par la **VMCA**, l'autorité interne du vCenter. Aucune machine ne la connaît :
+### 0.2 Comment ça se passe
+```
+vCenter                      DC01 (LAB-ROOT-CA)                 vCenter
+1. génère la clé privée  ──►  3. vérifie la demande        ──►  5. importe le certificat
+   + la demande (CSR)         4. tu approuves, la CA signe        + la racine LAB-ROOT-CA
+   (la clé ne sort jamais)                                         → les services redémarrent
+```
+La **clé privée reste dans le vCenter**. Seule la demande (CSR) circule.
 
-- le navigateur affiche *« Non sécurisé »* ;
-- Horizon affichera *« Certificat non valide détecté »* à l'ajout du vCenter (page 10) ;
-- on prend l'habitude de cliquer sur « Accepter », ce qui est exactement ce qu'un attaquant espère.
-
-Les machines du domaine font déjà confiance à LAB-ROOT-CA. Si elle signe le certificat du vCenter, l'alerte disparaît **pour de bonnes raisons**.
-
-### 1.2 Le choix : le mode hybride
-
-![Donner au vCenter un certificat LAB-ROOT-CA](/vdi/07-certificat-vcenter.svg)
-
-| Mode | Principe | Choix |
-|---|---|---|
-| VMCA seule (défaut) | La VMCA signe tout | Situation actuelle |
-| **Hybride** | On remplace **seulement le certificat SSL de la machine** (celui du site web) par un certificat LAB-ROOT-CA. La VMCA continue de signer les certificats des ESXi et des services internes | ✅ **Recommandé par VMware, retenu ici** |
-| VMCA subordonnée | La VMCA devient une sous-CA de LAB-ROOT-CA | ❌ Lourd, et donne au vCenter le pouvoir d'émettre des certificats reconnus par tout le domaine |
-
-### 1.3 Le piège du PNID
-
-Le PNID du vCenter est son IP (page 03). Le certificat doit donc contenir, dans ses noms alternatifs :
-
-| Nom alternatif | Valeur |
-|---|---|
-| **Adresse IP** | **`192.168.50.12`** (obligatoire : c'est le PNID) |
-| Nom DNS | `vcenter.lab.lan` (pour l'ouvrir aussi par son nom) |
-
-> Si le PNID n'est pas dans le certificat, le vCenter refuse le remplacement.
-
-### 1.4 Le modèle LAB-vCenterServer
-
-Ici, le nom vient **de la demande** générée par le vCenter (une CSR), puisque le vCenter n'est pas dans l'AD. C'est exactement la situation de l'attaque **ESC1**. On la neutralise par trois verrous :
-
-| Verrou | Effet |
-|---|---|
-| **Approbation obligatoire** par le gestionnaire de la CA | Aucune demande n'est délivrée sans que tu l'aies vue et acceptée |
-| Droit *Inscrire* réservé aux **Admins du domaine** | Un utilisateur ordinaire ne peut même pas soumettre de demande |
-| Usage limité à **Authentification du serveur** | Le certificat ne permet pas d'ouvrir une session dans le domaine |
-
-Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modèle** :
-
-| Onglet | Réglage |
-|---|---|
-| **Compatibilité** | Windows Server 2016 / Windows 10 – Windows Server 2016 |
-| **Général** | Nom `LAB-vCenterServer` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
-| **Traitement de la demande** | ☐ Autoriser l'exportation de la clé privée (la clé est générée **dans le vCenter** et n'en sort pas) |
-| **Chiffrement** | Fournisseur de stockage de clés, RSA, **2048** minimum |
-| **Nom du sujet** | ● **Fournir dans la demande** (l'avertissement sur la sécurité est normal : les deux verrous suivants y répondent) |
-| **Conditions d'émission** | ☑ **Approbation du gestionnaire de certificat de l'autorité de certification** |
-| **Extensions > Stratégies d'application** | Seulement **Authentification du serveur** |
-| **Sécurité** | **Admins du domaine** : Lecture + Inscrire · **Utilisateurs authentifiés** : Lecture seulement · supprime tout autre droit *Inscrire* |
-
-**OK**, puis `certsrv.msc` > **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenterServer**.
-
-### 1.5 Préparer le vCenter
-
-1. 📸 **Snapshot de la VM VCENTER** (éteinte de préférence, ou sans la mémoire), pour pouvoir revenir en arrière.
-2. Exporte le certificat **LAB-ROOT-CA** : `certsrv.msc` > clic droit sur **LAB-ROOT-CA** > **Propriétés** > **Afficher le certificat** > **Détails** > **Copier dans un fichier** > **X.509 encodé en base 64** > `C:\Temp\lab-root-ca.cer`.
-3. Dans le vSphere Client (en **administrator@vsphere.local**) : **Menu ☰ > Administration > Certificats > Gestion des certificats**.
-4. Section **Certificats racines approuvés** > **Ajouter** > `lab-root-ca.cer` > **Ajouter**.
-
-> Le vCenter fait maintenant confiance à LAB-ROOT-CA. Sans cette étape, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne.
-
-### 1.6 Générer la demande (CSR)
-
-**Gestion des certificats** > section **Certificat SSL de la machine** > **Actions > Générer une demande de signature de certificat (CSR)** :
+### 0.3 La règle d'or de ton lab : le PNID
+Le **PNID** de ton vCenter est **192.168.50.12**. Le vCenter **refuse** un certificat qui ne contient pas son PNID dans le champ *Autre nom de l'objet* (SAN). Le certificat contiendra donc :
 
 | Champ | Valeur |
 |---|---|
-| Nom commun | `192.168.50.12` |
-| Organisation / Unité / Pays / Ville | `LAB` / `vSphere` / `FR` / ta ville |
-| Nom d'hôte / Autre nom de l'objet | `192.168.50.12`, `vcenter.lab.lan` |
-| Taille de la clé | **2048** (ou 3072) |
+| Nom commun (CN) | `vcenter.lab.lan` (ce champ n'accepte pas d'IP) |
+| SAN | `vcenter.lab.lan` **et** `192.168.50.12` |
 
-**Suivant** > **Télécharger** le fichier (ou **Copier**) > enregistre-le sous `vcenter.csr` et copie-le dans `C:\Temp` sur DC01.
+### 0.4 Sécurité : pourquoi un modèle avec approbation
+Le vCenter n'est pas un ordinateur du domaine. Le nom du certificat ne peut donc pas être tiré de l'AD, comme pour LAB-HorizonServer : il doit être **fourni dans la demande**.
 
-> Le vCenter garde la clé privée. Ne génère pas une seconde CSR avant d'avoir importé le certificat : la première deviendrait inutilisable.
+Un modèle « nom fourni dans la demande », ouvert à n'importe qui, permet de demander un certificat au nom de `dc01.lab.lan` ou de l'administrateur : c'est l'attaque **ESC1**. On la bloque par deux protections :
 
-### 1.7 Faire signer la demande
-
-Sur DC01, en **adm-dom-afaye**, invite de commandes administrateur :
-
-```
-certreq -submit -attrib "CertificateTemplate:LAB-vCenterServer" C:\Temp\vcenter.csr
-```
-
-Choisis **LAB-ROOT-CA**. La réponse est *« Le certificat demandé est en attente »*, avec un **numéro de requête** (RequestId).
-
-1. `certsrv.msc` > **Demandes en attente** > double-clic sur la demande : vérifie le nom et les noms alternatifs (**l'IP 192.168.50.12**).
-2. Clic droit > **Toutes les tâches > Délivrer**.
-3. Récupère le certificat :
-
-```
-certreq -retrieve <RequestId> C:\Temp\vcenter.cer
-```
-
-> 🔒 **C'est ici que joue l'approbation :** une demande au nom de `dc01.lab.lan` ou d'un administrateur ne passerait jamais cette étape.
-
-### 1.8 Importer et remplacer
-
-**Gestion des certificats** > **Certificat SSL de la machine** > **Actions > Importer et remplacer le certificat** > **Remplacer par un certificat externe (via CSR)** :
-
-| Champ | Fichier |
-|---|---|
-| Certificat SSL de la machine | `vcenter.cer` |
-| Chaîne de certificats | `lab-root-ca.cer` |
-
-**Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué.
-
-### 1.9 Contrôler
-
-1. Depuis la VM Horizon ou un poste du domaine, ouvre `https://192.168.50.12/ui` : **cadenas**, certificat **délivré par LAB-ROOT-CA**, aucune alerte.
-2. Depuis ton PC (hors domaine) : l'alerte disparaît une fois LAB-ROOT-CA importé dans ses **Autorités de certification racines de confiance** (page 10, partie 7).
-3. L'ESXi reste « Connecté » dans l'inventaire.
-4. Tout fonctionne ? **Supprime le snapshot** du vCenter.
-
-> **Retour arrière :** si le vCenter ne revient pas, rétablis le snapshot. Le compte `administrator@vsphere.local` reste disponible tout du long.
-
-> 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais 1.6 à 1.8 un mois avant. Note la date à côté de celle de DC01.
+1. Seuls les **Admins du domaine** (tier 0) peuvent faire la demande.
+2. Chaque demande **attend ton approbation** dans la console de la CA. Rien n'est délivré automatiquement.
 
 ---
 
-## 2. Durcir le vCenter
+## 1. Prérequis
 
-### 2.1 Le SSO
-
-**Menu ☰ > Administration > Single Sign-On > Configuration** > onglet **Comptes locaux** :
-
-| Stratégie | Réglage conseillé |
+| Point | Vérification |
 |---|---|
-| Mot de passe | 15 caractères minimum, durée de vie 90 jours (les comptes AD suivent la stratégie de l'AD) |
-| Verrouillage | **5** tentatives, déverrouillage après **15 minutes** |
-| Jeton | Laisse les valeurs par défaut |
+| Enregistrement DNS `vcenter.lab.lan` → 192.168.50.12 (A et PTR) | Console DNS sur DC01 (créé par `Creation-DNS-LAB.ps1`) |
+| Le vCenter est en bonne santé | VAMI `https://192.168.50.12:5480` > **Résumé** : tout est vert |
+| Ton PC fait confiance à LAB-ROOT-CA | Certificat racine importé dans *Autorités de certification racines de confiance* (procédure Horizon, partie 9.1) |
+| Un créneau tranquille | Comptes 1 h. Les services du vCenter redémarrent pendant environ 15 min |
 
-> `administrator@vsphere.local` devient un **compte de secours** : mot de passe long dans le coffre, utilisé seulement si l'AD est indisponible ou pour les certificats.
+### 1.1 Le snapshot du vCenter (obligatoire)
+C'est ton retour arrière si quelque chose casse.
 
-### 2.2 L'appliance (VAMI)
+1. Ouvre le **client hôte de l'ESXi** : `https://192.168.50.11/ui`, connecté en `root`. Le vCenter va être éteint, on ne peut donc pas passer par lui.
+2. **Machines virtuelles** > clic droit sur **VCENTER** > **Système d'exploitation invité > Arrêter**. Attends qu'elle soit éteinte (5 à 10 min).
+3. Clic droit sur **VCENTER** > **Snapshots > Prendre un snapshot**. Nom : `avant-certificat-LAB-ROOT-CA`. **Prendre un snapshot**.
+4. Rallume la VM et attends que `https://192.168.50.12/ui` réponde de nouveau (10 à 15 min).
 
-`https://192.168.50.12:5480`, compte `root` :
+> Un snapshot pris **VM éteinte** est cohérent. Ne le garde pas plus de quelques jours : supprime-le dès que tout est validé (partie 7).
 
-| Menu | Réglage |
+---
+
+## 2. Créer le modèle LAB-vCenter (sur DC01, en adm-dom-afaye)
+
+1. **Win + R** > `certtmpl.msc`.
+2. Clic droit sur **Serveur Web** > **Dupliquer le modèle**.
+3. Remplis les onglets :
+
+| Onglet | Réglage |
 |---|---|
-| **Accès** | ☐ Connexion SSH · ☑ Connexion DCUI · ☐ Shell de console. Réactive SSH seulement le temps d'une opération |
-| **Heure** | Mode **NTP**, serveur `192.168.50.10` |
-| **Administration** | Expiration du mot de passe root activée, avec un e-mail ou un rappel |
-| **Sauvegarde** | Planifie une **sauvegarde fichier** quotidienne vers un partage SMB (sur le PC par exemple), avec chiffrement par mot de passe |
-| **Syslog** | Optionnel : envoyer les journaux vers un serveur de logs |
+| **Compatibilité** | Autorité : **Windows Server 2016** · Destinataire : **Windows 10 / Windows Server 2016** |
+| **Général** | Nom complet : `LAB-vCenter` · Validité : **2 ans** · Renouvellement : **6 semaines** · ☐ **Publier le certificat dans Active Directory** |
+| **Traitement de la demande** | Laisse par défaut. La clé est créée par le vCenter, ces réglages ne s'appliquent pas |
+| **Chiffrement** | Taille minimale de la clé : **2048** |
+| **Nom du sujet** | ● **Fournir dans la demande** · clique **OK** sur l'avertissement |
+| **Conditions d'émission** | ☑ **Approbation du gestionnaire de certificats de l'autorité de certification** |
+| **Extensions** | **Stratégies d'application** : uniquement **Authentification du serveur** (c'est le cas par défaut) |
+| **Sécurité** | **Utilisateurs authentifiés** : Lecture seule · **Admins du domaine** et **Administrateurs de l'entreprise** : Lecture + **Inscrire** · personne d'autre n'a *Inscrire* |
 
-> ⚠️ **Jamais de modification du nom d'hôte** dans *Réseau* (page 03).
+4. **OK**.
 
-### 2.3 Le vSphere Client
+> **Pourquoi 2 ans ?** Une CA privée n'est pas soumise à la limite de 398 jours des navigateurs. Deux ans, c'est un renouvellement de moins à gérer, pour un risque qui reste faible dans le lab. En production, on choisit souvent 1 an.
 
-- **Administration > Déploiement > Configuration du client** : délai d'expiration de session **15 à 30 minutes**.
-- **Administration > Déploiement > Programme d'amélioration du produit** : **quitter** le programme.
-- Les droits restent donnés **à des groupes AD**, jamais à des comptes nominatifs (page 06).
+### 2.1 Publier le modèle
+1. **Win + R** > `certsrv.msc` > déplie **LAB-ROOT-CA**.
+2. Clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter** > **OK**.
 
-### 2.4 L'ESXi
+---
 
-| Réglage | Où | Valeur |
+## 3. Générer la demande (CSR) dans le vCenter
+
+Connecte-toi au vSphere Client en **adm-vmw-afaye@lab.lan** ou en `administrator@vsphere.local`.
+
+1. **Menu (☰) > Administration > Certificats > Gestion des certificats**.
+2. Carte **Certificat SSL de machine** (`__MACHINE_CERT`) > **Actions > Générer une demande de signature de certificat (CSR)**.
+3. Remplis le formulaire :
+
+| Champ | Valeur |
+|---|---|
+| Nom commun | `vcenter.lab.lan` |
+| Organisation | `LAB` |
+| Unité d'organisation | `vSphere` |
+| Pays | France |
+| État/province | `Ile-de-France` |
+| Ville | `Paris` |
+| Adresse e-mail | (vide) |
+| Hôte | `192.168.50.12` **(ne change pas cette valeur : c'est le PNID)** |
+| Autre nom de l'objet | `vcenter.lab.lan, 192.168.50.12` |
+| Taille de la clé | **2048** |
+
+4. **Suivant**. La demande s'affiche (`-----BEGIN CERTIFICATE REQUEST-----`). Clique sur **Télécharger** pour obtenir le fichier `vcenter.csr`, ou sur **Copier**.
+5. **Terminer**.
+
+> ⚠️ **Ne régénère pas de CSR** avant d'avoir importé le certificat (partie 5). Chaque nouvelle demande crée une **nouvelle clé privée**, et le certificat obtenu avec l'ancienne demande ne pourrait plus être importé.
+
+---
+
+## 4. Faire signer la demande par LAB-ROOT-CA (sur DC01)
+
+L'inscription web n'est pas installée sur la CA, et c'est voulu (protection contre ESC8). On passe donc par `certreq`, qui ouvre des fenêtres graphiques.
+
+### 4.1 Copier la demande sur DC01
+1. Crée le dossier `C:\PKI\vcenter`.
+2. Mets-y `vcenter.csr`. Tu peux aussi ouvrir le **Bloc-notes**, coller le texte de la demande (lignes BEGIN et END comprises) et l'enregistrer sous `C:\PKI\vcenter\vcenter.csr`, avec le type **Tous les fichiers**.
+
+### 4.2 Vérifier la demande avant de la soumettre
+PowerShell sur DC01 :
+```powershell
+certutil -dump C:\PKI\vcenter\vcenter.csr
+```
+Dans la section *Autre nom de l'objet*, tu dois voir **Nom DNS=vcenter.lab.lan** et **Adresse IP=192.168.50.12**. Si l'IP manque, refais la partie 3.
+
+### 4.3 Soumettre la demande
+```powershell
+certreq -submit -attrib "CertificateTemplate:LAB-vCenter" C:\PKI\vcenter\vcenter.csr
+```
+1. Une fenêtre demande l'autorité : choisis **LAB-ROOT-CA** > **OK**.
+2. Réponse attendue : **« Certificat en attente : Pris en charge par la stratégie »** avec un **RequestId** (par exemple 12). Note ce numéro.
+
+### 4.4 Approuver la demande
+1. `certsrv.msc` > **LAB-ROOT-CA > Demandes en attente**.
+2. Double-clique sur la demande portant ton numéro. Vérifie le **nom (vcenter.lab.lan)** et le **demandeur (LAB\adm-dom-afaye)**.
+3. Clic droit > **Toutes les tâches > Délivrer**.
+
+> 🔒 C'est l'**approbation** : si une demande inconnue apparaît ici un jour, tu la **refuses**.
+
+### 4.5 Récupérer le certificat
+1. **Certificats délivrés** > double-clique sur le certificat **vcenter.lab.lan**.
+2. Onglet **Détails** > **Copier dans un fichier…** > Suivant > **X.509 encodé en base 64 (.cer)** > `C:\PKI\vcenter\vcenter.cer` > **Terminer**.
+3. Onglet **Détails**, contrôle **Autre nom de l'objet** : **vcenter.lab.lan** et **192.168.50.12**.
+
+### 4.6 Exporter la racine LAB-ROOT-CA
+Si tu ne l'as pas déjà :
+
+1. `certsrv.msc` > clic droit sur **LAB-ROOT-CA** > **Propriétés** > **Afficher le certificat**.
+2. **Détails > Copier dans un fichier** > **Base 64** > `C:\PKI\vcenter\LAB-ROOT-CA.cer`.
+
+Copie **vcenter.cer** et **LAB-ROOT-CA.cer** sur le PC depuis lequel tu ouvres le vSphere Client.
+
+---
+
+## 5. Importer le certificat dans le vCenter
+
+### 5.1 Ajouter d'abord la racine aux certificats approuvés
+1. **Administration > Certificats > Gestion des certificats** > section **Certificats racines approuvés** > **Ajouter**.
+2. Parcourir > **LAB-ROOT-CA.cer** > ☐ *Démarrer la propagation des racines vers tous les hôtes ESXi* (pas nécessaire) > **Ajouter**.
+3. **Contrôle** : une nouvelle carte **LAB-ROOT-CA** apparaît.
+
+### 5.2 Remplacer le certificat SSL de machine
+1. Carte **Certificat SSL de machine** > **Actions > Importer et remplacer le certificat**.
+2. Choisis **Remplacer par un certificat CA externe lorsque la CSR est générée à partir de vCenter Server (clé privée intégrée)** > **Suivant**.
+3. **Certificat SSL de machine** : **Parcourir** > `vcenter.cer`.
+4. **Chaîne de certificats** : **Parcourir** > `LAB-ROOT-CA.cer`.
+5. **Remplacer**.
+
+Le vCenter redémarre ses services et la session se coupe. **Attends 15 minutes** sans rien toucher.
+
+> Si un message refuse le certificat **avant** le redémarrage, rien n'a été modifié : voir le dépannage (partie 8).
+
+---
+
+## 6. Contrôles
+
+| # | Contrôle | Résultat attendu |
 |---|---|---|
-| **Mode de verrouillage** | **192.168.50.11 > Configurer > Système > Profil de sécurité > Mode de verrouillage > Modifier** | **Normal** : l'ESXi ne s'administre plus que par le vCenter. La DCUI reste accessible en secours |
-| Services | **Configurer > Système > Services** | SSH et ESXi Shell **arrêtés**, démarrage **manuel** |
-| Mot de passe root | Coffre | Long et unique |
+| 1 | VAMI `https://192.168.50.12:5480` > **Services** | Tous les services en démarrage automatique sont **démarrés** |
+| 2 | Ferme le navigateur, rouvre `https://vcenter.lab.lan/ui`, puis `https://192.168.50.12/ui` | **Cadenas sans alerte** dans les deux cas · certificat délivré par **LAB-ROOT-CA** |
+| 3 | Connexion en **adm-vmw-afaye@lab.lan** | OK (la source d'identité LDAPS n'est pas touchée) |
+| 4 | **Gestion des certificats** > carte Certificat SSL de machine | Émetteur `LAB-ROOT-CA`, date de fin dans 2 ans |
+| 5 | **Hôtes et clusters** | 192.168.50.11 est **connecté** |
+| 6 | Si Horizon a déjà le vCenter | Voir 6.1 |
 
-> En mode verrouillage normal, si le vCenter est perdu, on désactive le verrouillage depuis la **DCUI** de l'ESXi (console de la VM dans Workstation). Teste-le une fois pour savoir le faire.
+### 6.1 Si le vCenter était déjà ajouté dans Horizon
+Horizon avait mémorisé l'**ancien** certificat et va afficher le vCenter **en rouge**.
+
+1. Console Horizon > **Paramètres > Serveurs > vCenter Server** > sélectionne 192.168.50.12 > **Modifier**.
+2. **OK** > la fenêtre *Certificat non valide détecté* s'affiche > **Afficher le certificat** > vérifie l'émetteur **LAB-ROOT-CA** > **Accepter**.
 
 ---
 
-## 3. Durcir l'Active Directory
+## 7. Après la validation
+- Laisse tourner un ou deux jours, puis **supprime le snapshot** `avant-certificat-LAB-ROOT-CA` : client ESXi ou vCenter > VM VCENTER > **Snapshots > Gérer** > Supprimer.
+- Sur DC01, supprime `C:\PKI\vcenter\vcenter.csr`. Il ne contient pas de secret, mais il ne sert plus.
+- **Note la date d'expiration** dans ton agenda : environ 2 mois avant, refais les parties 3 à 6. Un nouveau CSR crée une nouvelle clé.
 
-Tous ces réglages se font sur DC01, en **adm-dom-afaye**.
+---
 
-### 3.1 Signature LDAP et liaison de canal
+## 8. Dépannage
 
-Maintenant que le vCenter est en LDAPS, on peut **interdire le LDAP non signé**.
-
-**Étape 1 : observer.** Vérifie que plus personne ne fait de LDAP en clair.
-
-1. **Win + R** > `regedit` > `HKLM\SYSTEM\CurrentControlSet\Services\NTDS\Diagnostics` > **16 LDAP Interface Events** = `2`.
-2. Utilise le lab normalement pendant quelques heures.
-3. **Observateur d'événements > Journaux des applications et des services > Directory Service** > **Filtrer** sur l'ID **2889**. Chaque événement nomme une IP et un compte qui font du LDAP non signé. **La liste doit être vide.**
-4. Remets la valeur à `0`.
-
-**Étape 2 : exiger.** **Gestion des stratégies de groupe** > clic droit sur l'OU **Domain Controllers** > **Créer un objet GPO… et le lier ici** > `GPO-DC-Hardening` > **Modifier** > **Configuration ordinateur > Stratégies > Paramètres Windows > Paramètres de sécurité > Stratégies locales > Options de sécurité** :
-
-| Paramètre | Valeur |
-|---|---|
-| Contrôleur de domaine : conditions requises pour la signature de serveur LDAP | **Exiger la signature** |
-| Contrôleur de domaine : conditions requises pour le jeton de liaison de canal LDAP du serveur | **Lorsque pris en charge** |
-| Sécurité réseau : niveau d'authentification LAN Manager | **Envoyer uniquement des réponses NTLM version 2. Refuser LM et NTLM** |
-| Serveur réseau Microsoft : communications signées numériquement (toujours) | **Activé** |
-
-`gpupdate /force`, puis reconnecte-toi au vCenter en `adm-vmw-afaye` pour vérifier.
-
-> **Liaison de canal :** empêche de relayer une authentification NTLM volée vers LDAPS. « Lorsque pris en charge » est sans risque. Tu peux tester « Toujours » ensuite, et revenir en arrière si le vCenter ne se connecte plus.
-
-### 3.2 TLS 1.2 minimum
-
-SSL 2.0 et 3.0, TLS 1.0 et 1.1 sont obsolètes. Le plus simple en interface graphique est l'outil gratuit **IIS Crypto** (Nartac) : bouton **Best Practices**, décoche TLS 1.0 et 1.1 dans *Server Protocols* et *Client Protocols*, **Apply**, redémarre DC01.
-
-Après le redémarrage, refais le test `ldp.exe` (page 06, partie 3) et une connexion au vCenter.
-
-### 3.3 Protéger les comptes d'administration
-
-| Mesure | Comment |
-|---|---|
-| **Utilisateurs protégés** | Ajoute `adm-dom-afaye` au groupe **Protected Users** (`lab.lan > Users`) : plus de NTLM, pas de mise en cache du mot de passe, tickets Kerberos de 4 heures. Teste ensuite tes connexions. Pour `adm-vmw` et `adm-hzn`, teste un par un : un service qui exige NTLM ne les accepterait plus |
-| **Tiering par GPO** | GPO liée à `LAB > Serveurs` : **Attribution des droits utilisateur > Interdire l'ouverture d'une session locale** et **… par les services Bureau à distance** pour **Admins du domaine**. Le tier 0 ne se connecte plus aux serveurs |
-| **Comptes de service** | Groupe `GG-SVC-DenyInteractive` (dans `LAB > Groupes`) avec `svc-vcenter-ldap`, `svc-horizon-vc`, `svc-horizon-ic`. GPO liée au domaine : **Interdire l'ouverture d'une session locale**, **… par les services Bureau à distance**, **… en tant que tâche**, **… en tant que service**. ⚠️ **Pas** *Interdire l'accès à cet ordinateur à partir du réseau* : ça bloquerait le bind LDAP |
-| **Mots de passe longs** | Donne aux comptes de service un mot de passe de **32 caractères** généré par ton coffre, puis mets-le à jour dans la source d'identité du vCenter (page 06) et dans Horizon (page 10) |
-
-### 3.4 Windows LAPS
-
-Le mot de passe de l'**administrateur local** des serveurs membres doit être unique et changer tout seul. **Windows LAPS** est intégré à Windows Server 2022 et 2025 (à jour).
-
-1. Une seule fois, dans PowerShell administrateur sur DC01 :
-   ```
-   Update-LapsADSchema
-   Set-LapsADComputerSelfPermission -Identity "OU=Serveurs,OU=LAB,DC=lab,DC=lan"
-   ```
-2. GPO liée à `LAB > Serveurs` > **Configuration ordinateur > Stratégies > Modèles d'administration > Système > LAPS** :
-   - **Configurer le répertoire de sauvegarde des mots de passe** : **Activé**, *Active Directory* ;
-   - **Paramètres de mot de passe** : 20 caractères, 30 jours.
-3. Sur HORIZON, `gpupdate /force`. Le mot de passe apparaît dans **Utilisateurs et ordinateurs AD** > HORIZON > **Propriétés** > onglet **LAPS**.
-
-### 3.5 Petits réglages qui comptent
-
-| Réglage | Où | Pourquoi |
+| Symptôme | Cause | Solution |
 |---|---|---|
-| Service **Spouleur d'impression** arrêté et désactivé sur DC01 | `services.msc` | Évite les attaques de type PrintNightmare et la coercition d'authentification |
-| Audit avancé | `GPO-DC-Hardening` > **Configuration avancée de la stratégie d'audit** : Ouverture de session de compte, Gestion des comptes, Accès DS, Changement de stratégie | Tracer qui fait quoi sur le domaine |
-| Sauvegarde de la CA à jour | Page 05, partie 3.4 | Après tout nouveau modèle |
-| Corbeille AD | **Centre d'administration Active Directory** > clic droit sur `lab` > **Activer la Corbeille** | Restaurer un compte supprimé par erreur |
+| « Entrez un nom de domaine complet valide » dans le CSR | Une IP dans **Nom commun** | CN = `vcenter.lab.lan`, l'IP va uniquement dans *Autre nom de l'objet* |
+| `certreq` : « modèle introuvable » ou « refusé » | Modèle non publié, ou droit *Inscrire* manquant | Parties 2 et 2.1. Lance PowerShell avec `adm-dom-afaye` |
+| La demande est délivrée directement, sans attente | Approbation non cochée | Onglet *Conditions d'émission* du modèle (partie 2) |
+| L'import refuse : PNID absent ou SAN | L'IP 192.168.50.12 manque dans le SAN | Contrôle 4.2 / 4.5, refais la CSR avec l'IP |
+| L'import refuse : chaîne incomplète | La racine n'est pas fournie ou pas au format base 64 | Partie 4.6 (base 64) et 5.2, étape 4 |
+| L'import refuse : la clé privée ne correspond pas | Une CSR a été régénérée entre-temps | Refais les parties 3 à 5 avec la **dernière** CSR |
+| Le navigateur affiche encore une alerte | Le PC ne fait pas confiance à LAB-ROOT-CA, ou le cache | Importe la racine sur le PC, ferme complètement le navigateur |
+| vSphere Client inaccessible après 30 min | Services bloqués | VAMI > **Services**. Démarre ceux qui sont arrêtés. Sinon, retour arrière (8.1) |
+
+### 8.1 Retour arrière
+Si le vSphere Client ne revient pas :
+
+1. Client hôte de l'ESXi (`https://192.168.50.11/ui`) > VM **VCENTER** > **Snapshots > Gérer les snapshots**.
+2. Sélectionne `avant-certificat-LAB-ROOT-CA` > **Restaurer**. La VM revient éteinte, dans l'état d'avant.
+3. Rallume-la et attends 15 min.
+
+Autre solution sans snapshot, en SSH sur le vCenter : `/usr/lib/vmware-vmca/bin/certificate-manager`, **option 8** (« Reset all Certificates »). Elle remet des certificats signés par la VMCA. Note qu'elle remplace **tous** les certificats.
 
 ---
 
-## 4. Checklist
+## 9. Récapitulatif sécurité
 
-| ✓ | Vérification |
+| Mesure | Pourquoi |
 |---|---|
-| ☐ | Modèle `LAB-vCenterServer` avec approbation, publié |
-| ☐ | LAB-ROOT-CA dans les racines approuvées du vCenter |
-| ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, IP 192.168.50.12 dans les noms alternatifs |
-| ☐ | Snapshot du vCenter supprimé après validation |
-| ☐ | SSO : verrouillage 5 tentatives, compte `administrator@vsphere.local` dans le coffre |
-| ☐ | VAMI : SSH coupé, NTP DC01, sauvegarde planifiée |
-| ☐ | ESXi : mode de verrouillage normal, SSH arrêté |
-| ☐ | Aucun événement 2889, signature LDAP exigée, liaison de canal « lorsque pris en charge » |
-| ☐ | TLS 1.0 et 1.1 désactivés, LDAPS et vCenter testés |
-| ☐ | `adm-dom-afaye` dans Protected Users, GPO de tiering, comptes de service bloqués en interactif |
-| ☐ | Windows LAPS sur OU=Serveurs |
-| ☐ | Spouleur arrêté sur DC01, corbeille AD activée |
-
----
-
-## 5. Quiz
-
-<details><summary><b>1. Pourquoi le modèle LAB-vCenterServer utilise-t-il « Fournir dans la demande », et comment évite-t-on ESC1 ?</b></summary> <p>Le vCenter n'est pas dans l'AD : son nom doit venir de sa CSR. On neutralise ESC1 par l'approbation obligatoire du gestionnaire de la CA et par un droit d'inscription réservé aux Admins du domaine.</p></details>
-
-<details><summary><b>2. Pourquoi l'IP 192.168.50.12 doit-elle figurer dans le certificat du vCenter ?</b></summary> <p>C'est son PNID. Le vCenter refuse un certificat qui ne contient pas son PNID, et Horizon s'y connecte par cette IP.</p></details>
-
-<details><summary><b>3. Pourquoi le mode hybride plutôt qu'une VMCA subordonnée ?</b></summary> <p>On ne remplace que le certificat visible par les utilisateurs. Une VMCA subordonnée pourrait émettre des certificats reconnus par tout le domaine : c'est trop de pouvoir pour une appliance.</p></details>
-
-<details><summary><b>4. Pourquoi observer l'événement 2889 avant d'exiger la signature LDAP ?</b></summary> <p>Pour repérer les machines qui font encore du LDAP non signé. Exiger la signature sans vérifier pourrait couper l'une d'elles, par exemple le vCenter s'il était resté en LDAP simple.</p></details>
-
-<details><summary><b>5. Pourquoi ne pas interdire l'accès réseau aux comptes de service ?</b></summary> <p>Le bind LDAP de svc-vcenter-ldap et les connexions d'Horizon sont des accès réseau. Les interdire couperait le vCenter et Horizon de l'AD.</p></details>
-
----
-
-[⬅ 06 - vCenter en LDAPS](/fr/hyperviseur/VDI/06-vcenter-ldaps) · [Sommaire](/fr/hyperviseur/VDI/00-sommaire) · Page suivante : [08 - Préparer Horizon ➜](/fr/hyperviseur/VDI/08-preparation-horizon)
+| La clé privée générée **dans le vCenter** | Elle ne circule jamais |
+| Modèle dédié **LAB-vCenter**, inscription réservée au tier 0 | Personne d'autre ne peut demander ce type de certificat |
+| **Approbation du gestionnaire** obligatoire | Bloque l'abus du nom fourni dans la demande (ESC1) |
+| Pas d'inscription web | Pas d'exposition à ESC8 |
+| SAN limité à `vcenter.lab.lan` et `192.168.50.12` | Le certificat ne vaut que pour le vCenter |
+| Snapshot **à froid** avant, supprimé après | Un retour arrière possible, sans garder un snapshot qui grossit |
