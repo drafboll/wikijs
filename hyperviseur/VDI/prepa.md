@@ -2,7 +2,7 @@
 title: 08 - Préparer l'infrastructure pour Horizon
 description: 
 published: 1
-date: 2026-11-18T13:23:02.217Z
+date: 2026-11-19T21:27:30.630Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:23:02.217Z
