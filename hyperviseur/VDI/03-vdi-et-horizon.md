@@ -2,7 +2,7 @@
 title: 03 - Construire le lab
 description: 
 published: 1
-date: 2026-11-18T13:13:37.676Z
+date: 2026-11-19T21:26:25.961Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:46:00.307Z
