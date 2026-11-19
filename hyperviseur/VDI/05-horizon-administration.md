@@ -2,7 +2,7 @@
 title: 05 - La PKI du lab : LAB-ROOT-CA
 description: 
 published: 1
-date: 2026-11-18T13:17:35.891Z
+date: 2026-11-19T21:25:36.219Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:47:43.404Z
