@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T10:20:53.446Z
+date: 2026-11-20T10:28:34.320Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -52,7 +52,7 @@ Le PNID du vCenter est son IP, et son **nom d'hôte système** est resté `local
 | Nom alternatif : **nom DNS** | **`localhost`** | Obligatoire : le nom d'hôte système du vCenter |
 | Nom alternatif : nom DNS | `vcenter.lab.lan` | Pour ouvrir aussi le vCenter par son nom |
 
-> Le certificat actuel, émis par la VMCA, l'est d'ailleurs pour `localhost` : colonne *Émis pour* de la **Gestion des certificats**. Un nom `localhost` dans un certificat est inhabituel, mais sans danger ici : la clé privée ne quitte jamais le vCenter. L'enlever imposerait de renommer le vCenter, ce qu'on s'interdit.
+> Le certificat actuel, émis par la VMCA, l'est d'ailleurs pour `localhost` : colonne *Émis pour* de la **Gestion des certificats**. Un nom `localhost` dans un certificat est inhabituel, mais sans danger ici : la clé privée reste sur le vCenter, et la copie faite le temps de l'import est supprimée aussitôt (étape 10). L'enlever imposerait de renommer le vCenter, ce qu'on s'interdit.
 
 ### 1.4 Le modèle LAB-vCenter
 
@@ -70,7 +70,7 @@ Le nom du certificat vient **de la demande** générée par le vCenter (une **CS
 |---|---|
 | **Compatibilité** | Windows Server 2016 / Windows 10 – Windows Server 2016 |
 | **Général** | Nom complet et nom du modèle : `LAB-vCenter` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
-| **Traitement de la demande** | ☐ Autoriser l'exportation de la clé privée (la clé est générée **dans le vCenter** et n'en sort pas) |
+| **Traitement de la demande** | ☐ Autoriser l'exportation de la clé privée (la clé est générée **sur le vCenter** avec openssl : ce réglage ne la concerne pas) |
 | **Chiffrement** | **Fournisseur de stockage de clés**, RSA, **2048**, SHA256 · ● *Les demandes peuvent utiliser un fournisseur disponible…* (la clé vient du vCenter : le fournisseur Windows ne sert pas) |
 | **Nom du sujet** | ● **Fournir dans la demande** (l'avertissement de sécurité est normal : les deux verrous suivants y répondent) |
 | **Conditions d'émission** | ☑ **Approbation du gestionnaire de certificat de l'autorité de certification** |
@@ -110,24 +110,74 @@ Le nom du certificat vient **de la demande** générée par le vCenter (une **CS
 
 > Sans la racine dans le vCenter, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne.
 
-#### Étape 3 : générer la CSR
+#### Étape 3 : générer la CSR avec openssl, sur le vCenter
 
-**Gestion des certificats** > onglet **SSL de machine** > **Générer une demande de signature de certificat (CSR)** :
+> **Pourquoi pas le formulaire du vSphere Client ?** Son bouton *Générer une demande de signature de certificat (CSR)* refuse `localhost` (*« Entrez un nom de domaine complet valide »*), alors que l'import exige ce nom. On génère donc la clé et la CSR avec `openssl`, directement sur l'appliance, puis on importe le certificat **avec sa clé privée** (étape 8).
 
-| Champ | Valeur |
-|---|---|
-| Nom commun | `192.168.50.12` |
-| Organisation | `LAB` |
-| Unité d'organisation | `vSphere` |
-| Pays / État / Localité | `FR` / ta région / ta ville |
-| Adresse e-mail | Facultatif |
-| Nom d'hôte | `localhost` (laisse la valeur proposée si c'est déjà elle) |
-| **Nom de remplacement de l'objet** | **`localhost, vcenter.lab.lan, 192.168.50.12`** |
-| Taille de la clé | **2048** |
+**3.1 Ouvrir un accès SSH temporaire**
 
-**Suivant** > **Télécharger**. Enregistre le fichier sous `vcenter.csr`, copie-le sur DC01 dans `C:\PKI\vcenter\` (en **remplaçant** l'ancien).
+1. VAMI `https://192.168.50.12:5480` (compte `root`) > **Accès** > **Modifier** > ☑ **Activer la connexion SSH** > **OK**.
+2. Sur ton PC, ouvre un PowerShell :
+   ```
+   ssh root@192.168.50.12
+   ```
+   Accepte l'empreinte (`yes`), saisis le mot de passe root. À l'invite `Command>`, tape :
+   ```
+   shell
+   ```
 
-> ⚠️ Le vCenter garde la clé privée de la **dernière** CSR générée. Ne génère plus d'autre CSR avant la fin de la procédure : la précédente deviendrait inutilisable.
+**3.2 Écrire le fichier de configuration**
+
+Colle ce bloc d'un seul coup dans la session SSH (clic droit pour coller) :
+
+```
+mkdir -p /root/csr && cd /root/csr
+cat > vcenter.cfg <<'EOF'
+[ req ]
+default_bits       = 2048
+prompt             = no
+distinguished_name = dn
+req_extensions     = ext
+
+[ dn ]
+CN = 192.168.50.12
+O  = LAB
+OU = vSphere
+C  = FR
+ST = Ile-de-France
+L  = Paris
+
+[ ext ]
+keyUsage         = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName   = DNS:localhost, DNS:vcenter.lab.lan, IP:192.168.50.12
+EOF
+```
+
+**3.3 Générer la clé et la CSR**
+
+```
+openssl req -new -nodes -newkey rsa:2048 -keyout vcenter.key -out vcenter.csr -config vcenter.cfg
+chmod 600 vcenter.key
+```
+
+**3.4 Vérifier sur place**
+
+```
+openssl req -in vcenter.csr -noout -text | grep -A1 "Subject Alternative Name"
+```
+
+La réponse doit être `DNS:localhost, DNS:vcenter.lab.lan, IP Address:192.168.50.12`.
+
+**3.5 Copier la CSR sur DC01**
+
+```
+cat vcenter.csr
+```
+
+Sélectionne tout le bloc, de `-----BEGIN CERTIFICATE REQUEST-----` à `-----END CERTIFICATE REQUEST-----` inclus, et copie-le. Sur DC01, ouvre le **Bloc-notes**, colle, puis **Enregistrer sous** `C:\PKI\vcenter\vcenter.csr` avec **Type : Tous les fichiers** (en remplaçant l'ancien).
+
+> **Garde la session SSH ouverte** : on reviendra chercher la clé privée à l'étape 8.
 
 #### Étape 4 : vérifier la CSR
 
@@ -175,16 +225,23 @@ Remplace `5` par ton identifiant. Choisis **LAB-ROOT-CA** si on te le demande. C
 
 #### Étape 8 : importer et remplacer
 
-1. **Gestion des certificats** > onglet **SSL de machine** > **Importer et remplacer un certificat**.
-2. Choisis **Remplacer par un certificat externe (via CSR)** (le vCenter a gardé la clé privée de l'étape 3).
-3. Renseigne :
+1. **Récupère la clé privée** sur ton PC. Dans la session SSH :
+   ```
+   cat /root/csr/vcenter.key
+   ```
+   Copie tout le bloc, de `-----BEGIN PRIVATE KEY-----` à `-----END PRIVATE KEY-----` inclus. Sur le PC, colle-le dans le Bloc-notes et enregistre-le sous `vcenter.key` (**Type : Tous les fichiers**), à côté de `vcenter.cer` et `lab-root-ca.cer`.
+   > 🔒 Ce fichier est la clé du vCenter : ne le copie nulle part ailleurs, et supprime-le dès l'étape 10.
+2. **Gestion des certificats** > onglet **SSL de machine** > **Importer et remplacer un certificat**.
+3. Choisis **Remplacer par un certificat externe (avec clé privée)**.
+4. Renseigne :
 
 | Champ | Fichier |
 |---|---|
 | Certificat SSL de la machine | `vcenter.cer` |
+| Clé privée | `vcenter.key` |
 | Chaîne de certificats | `lab-root-ca.cer` |
 
-4. **Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué. La page devient indisponible pendant ce temps, c'est normal.
+5. **Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué. La page devient indisponible pendant ce temps, c'est normal.
 
 #### Étape 9 : contrôler
 
@@ -198,11 +255,15 @@ Remplace `5` par ton identifiant. Choisis **LAB-ROOT-CA** si on te le demande. C
 
 Les demandes ratées et le certificat délivré pour l'ancienne CSR ne servent plus.
 
-1. `certsrv.msc` > **Certificats délivrés** : clic droit sur l'**ancien** certificat du vCenter (celui sans `localhost`) > **Toutes les tâches > Révoquer le certificat** > motif **Remplacé**.
-2. Les demandes de **Demandes ayant échoué** peuvent rester : elles servent d'historique.
-3. Note la date d'expiration du nouveau certificat à côté de celles de DC01 et d'Horizon.
+1. **La clé privée :**
+   - sur le PC, supprime `vcenter.key` avec **Maj + Suppr** (sans passer par la corbeille) ;
+   - dans la session SSH : `rm -rf /root/csr`, puis `exit` deux fois.
+2. **Le SSH :** VAMI > **Accès** > **Modifier** > ☐ **Activer la connexion SSH** > **OK**.
+3. **Les anciens certificats :** `certsrv.msc` > **Certificats délivrés** : clic droit sur l'**ancien** certificat du vCenter (celui sans `localhost`) > **Toutes les tâches > Révoquer le certificat** > motif **Remplacé**.
+4. Les demandes de **Demandes ayant échoué** peuvent rester : elles servent d'historique.
+5. Note la date d'expiration du nouveau certificat à côté de celles de DC01 et d'Horizon.
 
-> 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais les étapes 2 à 9 un mois avant.
+> 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais les étapes 2 à 10 un mois avant (en gardant le fichier `vcenter.cfg` de l'étape 3.2 dans tes notes).
 
 > **Retour arrière :** si le vCenter ne revient pas après l'étape 8, rétablis le snapshot. Le compte `administrator@vsphere.local` reste disponible tout du long.
 
@@ -213,6 +274,8 @@ Les demandes ratées et le certificat délivré pour l'ancienne CSR ne servent p
 | *« Les autorisations sur le modèle de certificat n'autorisent pas l'utilisateur actuel à s'inscrire… 0x80094012 (CERTSRV_E_TEMPLATE_DENIED) »* | Console **non élevée** : l'UAC désactive le groupe *Admins du domaine* dans le jeton, donc le droit *Inscrire* ne s'applique pas | **Exécuter en tant qu'administrateur**, puis soumettre à nouveau la même CSR. Sinon, vérifier l'onglet **Sécurité** du modèle et redémarrer le service `certsvc` |
 | *« Le modèle de certificat demandé n'est pas pris en charge par cette autorité de certification… 0x80094800 (CERTSRV_E_UNSUPPORTED_CERT_TYPE) »* | Modèle **non publié** sur LAB-ROOT-CA, ou mauvais nom dans `certreq` | Publier le modèle (1.4), vérifier avec `certutil -CATemplates`, utiliser le **nom du modèle** (onglet Général) |
 | *« Replace cert Failed: … DNS in Subject Alternative Name is not correct. DNS Name must contain machine FQDN. »* | Le nom d'hôte système `localhost` manquait dans les noms alternatifs | Nouvelle CSR avec `localhost` (étape 3), contrôle avec `certutil -dump` (étape 4). L'ancien certificat reste en place et valide en attendant |
+| *« Entrez un nom de domaine complet valide »* dans le formulaire *Générer une CSR* du vSphere Client | Le formulaire refuse `localhost`, qui n'est pas un FQDN, dans les champs *Hôte* et *Autre nom de l'objet* | Générer la CSR avec `openssl` sur l'appliance (étape 3), puis importer **avec la clé privée** (étape 8) |
+| L'import refuse la clé privée | Format de clé non reconnu par ta version | Dans la session SSH : `openssl rsa -in vcenter.key -out vcenter-rsa.key -traditional`, puis importer `vcenter-rsa.key` (il commence par `-----BEGIN RSA PRIVATE KEY-----`) |
 
 ---
 
