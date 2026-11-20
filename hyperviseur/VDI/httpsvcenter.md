@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T11:51:06.780Z
+date: 2026-11-20T11:51:53.986Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -219,8 +219,7 @@ openssl req -in vcenter.csr -noout -text | grep -A1 "Subject Alternative Name"
 
 La réponse doit être `DNS:192.168.50.12, IP Address:192.168.50.12, DNS:vcenter.lab.lan`.
 
-![openssl : les noms alternatifs de la CSR](/vdi/11-csr-openssl-san.png)
-
+![11-csr-openssl-san.png](/vdi/11-csr-openssl-san.png)
 **3.5 Copier la CSR sur DC01**
 
 ```
@@ -247,7 +246,7 @@ Nom DNS=vcenter.lab.lan
 
 La première ligne est la plus importante : sans elle, le vCenter refusera le certificat.
 
-![certutil : les noms alternatifs de la CSR](/vdi/12-csr-certutil-san.png)
+![12-csr-certutil-san.png](/vdi/12-csr-certutil-san.png)
 
 S'il en manque une, **refais l'étape 3**. Une CSR incomplète serait signée sans problème, mais le vCenter refuserait le certificat à l'import.
 
