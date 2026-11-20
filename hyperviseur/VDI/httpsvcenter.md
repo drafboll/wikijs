@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T10:28:34.320Z
+date: 2026-11-20T10:55:39.170Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -14,7 +14,7 @@ dateCreated: 2026-11-11T13:48:57.656Z
 > 1. donner au vCenter un **certificat émis par LAB-ROOT-CA** : plus d'alerte dans le navigateur, et Horizon lui fera confiance sans exception ;
 > 2. **durcir** le vCenter, l'ESXi et l'AD, maintenant que tout passe en LDAPS.
 >
-> 📸 *Page à illustrer avec tes captures au moment où tu la réalises.*
+> 📸 *Captures de la partie 1 : modèle, publication et racine de confiance. Le reste est à illustrer au moment où tu le réalises.*
 
 ---
 
@@ -43,16 +43,24 @@ Les machines du domaine font déjà confiance à LAB-ROOT-CA. Si elle signe le c
 
 ### 1.3 Ce que doit contenir le certificat
 
-Le PNID du vCenter est son IP, et son **nom d'hôte système** est resté `localhost` (page 03). Avant d'accepter un certificat, le vCenter vérifie qu'il contient **les deux**.
+Pour le vCenter, son « FQDN » est son **PNID**, ici l'IP `192.168.50.12` (page 03). À l'import, il vérifie que les **noms DNS** du certificat contiennent ce PNID, **même si c'est une IP**. Une entrée « adresse IP » ne suffit pas.
 
 | Champ | Valeur | Pourquoi |
 |---|---|---|
 | Nom commun (CN) | `192.168.50.12` | Le PNID |
-| Nom alternatif : **adresse IP** | **`192.168.50.12`** | Obligatoire : l'adresse utilisée par le navigateur et Horizon |
-| Nom alternatif : **nom DNS** | **`localhost`** | Obligatoire : le nom d'hôte système du vCenter |
-| Nom alternatif : nom DNS | `vcenter.lab.lan` | Pour ouvrir aussi le vCenter par son nom |
+| Nom alternatif : **nom DNS** | **`192.168.50.12`** | **Obligatoire** : c'est ce que contrôle le vCenter (*« DNS Name must contain machine FQDN »*) |
+| Nom alternatif : **adresse IP** | **`192.168.50.12`** | Pour les navigateurs et Horizon, qui comparent une adresse IP aux entrées « adresse IP » |
+| Nom alternatif : nom DNS | `vcenter.lab.lan` | Facultatif : pour ouvrir aussi le vCenter par son nom |
 
-> Le certificat actuel, émis par la VMCA, l'est d'ailleurs pour `localhost` : colonne *Émis pour* de la **Gestion des certificats**. Un nom `localhost` dans un certificat est inhabituel, mais sans danger ici : la clé privée reste sur le vCenter, et la copie faite le temps de l'import est supprimée aussitôt (étape 10). L'enlever imposerait de renommer le vCenter, ce qu'on s'interdit.
+**Comment le vérifier sur ton vCenter** (en SSH, `shell`) :
+
+```
+/usr/lib/vmware-vmafd/bin/vmafd-cli get-pnid --server-name localhost
+```
+
+La commande affiche le PNID : `192.168.50.12`. Le nom d'hôte Linux (`hostname -f`) est `localhost`, mais ce n'est **pas** lui que le vCenter contrôle.
+
+> Le certificat d'origine de la VMCA ne contient d'ailleurs qu'une entrée `IP Address:192.168.50.12` : la VMCA n'est pas soumise au contrôle de l'import, un certificat externe si.
 
 ### 1.4 Le modèle LAB-vCenter
 
@@ -79,7 +87,47 @@ Le nom du certificat vient **de la demande** générée par le vCenter (une **CS
 
 **OK**.
 
+Les onglets, tels qu'ils sont réglés dans le lab :
+
+**Général :** `LAB-vCenter` en nom complet et en nom du modèle, 1 an, 6 semaines, pas de publication dans l'AD.
+
+![LAB-vCenter - onglet Général](/vdi/07-securiser-vcenter-ad/01-modele-general.png)
+
+**Traitement de la demande :** ☐ *Autoriser l'exportation de la clé privée*.
+
+![LAB-vCenter - onglet Traitement de la demande](/vdi/07-securiser-vcenter-ad/02-modele-traitement-demande.png)
+
+**Chiffrement :** fournisseur de stockage de clés, RSA 2048, SHA256.
+
+![LAB-vCenter - onglet Chiffrement](/vdi/07-securiser-vcenter-ad/03-modele-chiffrement.png)
+
+**Nom du sujet :** ● **Fournir dans la demande**.
+
+![LAB-vCenter - onglet Nom du sujet](/vdi/07-securiser-vcenter-ad/04-modele-nom-du-sujet.png)
+
+**Conditions d'émission :** ☑ **Approbation du gestionnaire de certificat de l'autorité de certification**. C'est le verrou principal contre ESC1.
+
+![LAB-vCenter - onglet Conditions d'émission](/vdi/07-securiser-vcenter-ad/05-modele-conditions-emission.png)
+
+**Extensions :** *Stratégies d'application* = **Authentification du serveur** seulement.
+
+![LAB-vCenter - onglet Extensions](/vdi/07-securiser-vcenter-ad/06-modele-extensions.png)
+
+**Sécurité :** les *Utilisateurs authentifiés* n'ont que la **Lecture** : ils ne peuvent pas demander ce certificat. Seuls *Admins du domaine* et *Administrateurs de l'entreprise* ont *Inscrire*.
+
+![LAB-vCenter - onglet Sécurité](/vdi/07-securiser-vcenter-ad/07-modele-securite.png)
+
+> **Onglet Compatibilité :** vérifie qu'il est bien sur **Windows Server 2016** / **Windows 10 – Windows Server 2016**, et pas sur les valeurs par défaut (Windows Server 2003 / Windows XP). Le fournisseur de stockage de clés n'est proposé qu'avec une compatibilité récente.
+
 **Publier le modèle.** `certsrv.msc` > **LAB-ROOT-CA** > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter** > **OK**.
+
+![certsrv - activer le modèle LAB-vCenter](/vdi/07-securiser-vcenter-ad/08-certsrv-activer-modele.png)
+
+La CA délivre maintenant trois modèles, un par usage :
+
+![certsrv - les trois modèles publiés](/vdi/07-securiser-vcenter-ad/09-certsrv-modeles-publies.png)
+
+> **Ménage :** si un essai précédent a laissé un autre modèle (par exemple `LAB-vCenterServer`), clic droit > **Supprimer** dans `certsrv.msc` ne fait que le **dépublier**. Pour le supprimer vraiment, fais aussi clic droit > **Supprimer** dans `certtmpl.msc`.
 
 ### 1.5 La procédure, étape par étape
 
@@ -106,13 +154,15 @@ Le nom du certificat vient **de la demande** générée par le vCenter (une **CS
 2. **Exporte la racine LAB-ROOT-CA** : `certsrv.msc` > clic droit sur **LAB-ROOT-CA** > **Propriétés** > **Afficher le certificat** > onglet **Détails** > **Copier dans un fichier** > **X.509 encodé en base 64 (.CER)** > `C:\PKI\vcenter\lab-root-ca.cer`. Copie-le sur le PC d'où tu ouvres le vSphere Client.
 3. vSphere Client > **Menu ☰ > Administration > Certificats > Gestion des certificats** > onglet **Racine de confiance** :
    - si **LAB-ROOT-CA** est déjà dans la liste, passe à l'étape 3 ;
-   - sinon, **Ajouter** > `lab-root-ca.cer` > **Ajouter**.
+   - sinon, **Ajouter un certificat racine approuvé** > `lab-root-ca.cer` > **Ajouter**.
 
-> Sans la racine dans le vCenter, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne.
+![vCenter - LAB-ROOT-CA dans les racines de confiance](/vdi/07-securiser-vcenter-ad/10-vcenter-racine-confiance.png)
+
+> Sans la racine dans le vCenter, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne. Les deux lignes **CA** sont la VMCA elle-même : on n'y touche pas.
 
 #### Étape 3 : générer la CSR avec openssl, sur le vCenter
 
-> **Pourquoi pas le formulaire du vSphere Client ?** Son bouton *Générer une demande de signature de certificat (CSR)* refuse `localhost` (*« Entrez un nom de domaine complet valide »*), alors que l'import exige ce nom. On génère donc la clé et la CSR avec `openssl`, directement sur l'appliance, puis on importe le certificat **avec sa clé privée** (étape 8).
+> **Pourquoi pas le formulaire du vSphere Client ?** Son bouton *Générer une demande de signature de certificat (CSR)* exige un nom de domaine complet (*« Entrez un nom de domaine complet valide »*) et ne permet pas de mettre l'IP `192.168.50.12` en **nom DNS**, alors que l'import l'exige. On génère donc la clé et la CSR avec `openssl`, directement sur l'appliance, puis on importe le certificat **avec sa clé privée** (étape 8).
 
 **3.1 Ouvrir un accès SSH temporaire**
 
@@ -150,7 +200,7 @@ L  = Paris
 [ ext ]
 keyUsage         = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
-subjectAltName   = DNS:localhost, DNS:vcenter.lab.lan, IP:192.168.50.12
+subjectAltName   = DNS:192.168.50.12, IP:192.168.50.12, DNS:vcenter.lab.lan
 EOF
 ```
 
@@ -167,7 +217,7 @@ chmod 600 vcenter.key
 openssl req -in vcenter.csr -noout -text | grep -A1 "Subject Alternative Name"
 ```
 
-La réponse doit être `DNS:localhost, DNS:vcenter.lab.lan, IP Address:192.168.50.12`.
+La réponse doit être `DNS:192.168.50.12, IP Address:192.168.50.12, DNS:vcenter.lab.lan`.
 
 **3.5 Copier la CSR sur DC01**
 
@@ -188,10 +238,12 @@ certutil -dump C:\PKI\vcenter\vcenter.csr
 Dans la section **Autre nom de l'objet**, les trois lignes doivent apparaître :
 
 ```
-Nom DNS=localhost
-Nom DNS=vcenter.lab.lan
+Nom DNS=192.168.50.12
 Adresse IP=192.168.50.12
+Nom DNS=vcenter.lab.lan
 ```
+
+La première ligne est la plus importante : sans elle, le vCenter refusera le certificat.
 
 S'il en manque une, **refais l'étape 3**. Une CSR incomplète serait signée sans problème, mais le vCenter refuserait le certificat à l'import.
 
@@ -208,7 +260,7 @@ Choisis **LAB-ROOT-CA** si on te le demande. Réponse attendue : *« Le certific
 #### Étape 6 : approuver la demande
 
 1. `certsrv.msc` > **LAB-ROOT-CA** > **Demandes en attente**.
-2. Double-clic sur ta demande (même identifiant). Vérifie que le nom et les noms alternatifs sont bien `192.168.50.12`, `localhost` et `vcenter.lab.lan`.
+2. Double-clic sur ta demande (même identifiant). Vérifie que le nom et les noms alternatifs sont bien `192.168.50.12` (en nom DNS **et** en adresse IP) et `vcenter.lab.lan`.
 3. Clic droit sur la demande > **Toutes les tâches > Délivrer**. Elle passe dans **Certificats délivrés**.
 
 > 🔒 **C'est ici que joue l'approbation :** une demande au nom de `dc01.lab.lan` ou d'un administrateur ne passerait jamais cette étape.
@@ -259,7 +311,7 @@ Les demandes ratées et le certificat délivré pour l'ancienne CSR ne servent p
    - sur le PC, supprime `vcenter.key` avec **Maj + Suppr** (sans passer par la corbeille) ;
    - dans la session SSH : `rm -rf /root/csr`, puis `exit` deux fois.
 2. **Le SSH :** VAMI > **Accès** > **Modifier** > ☐ **Activer la connexion SSH** > **OK**.
-3. **Les anciens certificats :** `certsrv.msc` > **Certificats délivrés** : clic droit sur l'**ancien** certificat du vCenter (celui sans `localhost`) > **Toutes les tâches > Révoquer le certificat** > motif **Remplacé**.
+3. **Les anciens certificats :** `certsrv.msc` > **Certificats délivrés** : clic droit sur chaque **ancien** certificat du vCenter (ceux sans `DNS:192.168.50.12`, émis lors des essais) > **Toutes les tâches > Révoquer le certificat** > motif **Remplacé**.
 4. Les demandes de **Demandes ayant échoué** peuvent rester : elles servent d'historique.
 5. Note la date d'expiration du nouveau certificat à côté de celles de DC01 et d'Horizon.
 
@@ -273,8 +325,8 @@ Les demandes ratées et le certificat délivré pour l'ancienne CSR ne servent p
 |---|---|---|
 | *« Les autorisations sur le modèle de certificat n'autorisent pas l'utilisateur actuel à s'inscrire… 0x80094012 (CERTSRV_E_TEMPLATE_DENIED) »* | Console **non élevée** : l'UAC désactive le groupe *Admins du domaine* dans le jeton, donc le droit *Inscrire* ne s'applique pas | **Exécuter en tant qu'administrateur**, puis soumettre à nouveau la même CSR. Sinon, vérifier l'onglet **Sécurité** du modèle et redémarrer le service `certsvc` |
 | *« Le modèle de certificat demandé n'est pas pris en charge par cette autorité de certification… 0x80094800 (CERTSRV_E_UNSUPPORTED_CERT_TYPE) »* | Modèle **non publié** sur LAB-ROOT-CA, ou mauvais nom dans `certreq` | Publier le modèle (1.4), vérifier avec `certutil -CATemplates`, utiliser le **nom du modèle** (onglet Général) |
-| *« Replace cert Failed: … DNS in Subject Alternative Name is not correct. DNS Name must contain machine FQDN. »* | Le nom d'hôte système `localhost` manquait dans les noms alternatifs | Nouvelle CSR avec `localhost` (étape 3), contrôle avec `certutil -dump` (étape 4). L'ancien certificat reste en place et valide en attendant |
-| *« Entrez un nom de domaine complet valide »* dans le formulaire *Générer une CSR* du vSphere Client | Le formulaire refuse `localhost`, qui n'est pas un FQDN, dans les champs *Hôte* et *Autre nom de l'objet* | Générer la CSR avec `openssl` sur l'appliance (étape 3), puis importer **avec la clé privée** (étape 8) |
+| *« Replace cert Failed: … DNS in Subject Alternative Name is not correct. DNS Name must contain machine FQDN. »* | Le « FQDN » du vCenter est son **PNID**, l'IP `192.168.50.12`, et il doit figurer **en nom DNS** dans le certificat. Ni `vcenter.lab.lan`, ni `localhost` (le nom d'hôte Linux), ni une simple entrée « adresse IP » ne suffisent | Nouvelle CSR avec `DNS:192.168.50.12` (étape 3), contrôle avec `certutil -dump` (étape 4). L'ancien certificat reste en place et valide en attendant |
+| *« Entrez un nom de domaine complet valide »* dans le formulaire *Générer une CSR* du vSphere Client | Le formulaire n'accepte que des FQDN : impossible d'y mettre l'IP en nom DNS | Générer la CSR avec `openssl` sur l'appliance (étape 3), puis importer **avec la clé privée** (étape 8) |
 | L'import refuse la clé privée | Format de clé non reconnu par ta version | Dans la session SSH : `openssl rsa -in vcenter.key -out vcenter-rsa.key -traditional`, puis importer `vcenter-rsa.key` (il commence par `-----BEGIN RSA PRIVATE KEY-----`) |
 
 ---
@@ -399,7 +451,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 |---|---|
 | ☐ | Modèle `LAB-vCenter` avec approbation, publié |
 | ☐ | LAB-ROOT-CA dans les racines approuvées du vCenter |
-| ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, avec 192.168.50.12 et `localhost` dans les noms alternatifs |
+| ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, avec 192.168.50.12 en nom DNS et en adresse IP |
 | ☐ | Snapshot du vCenter supprimé après validation |
 | ☐ | SSO : verrouillage 5 tentatives, compte `administrator@vsphere.local` dans le coffre |
 | ☐ | VAMI : SSH coupé, NTP DC01, sauvegarde planifiée |
@@ -416,7 +468,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 
 <details><summary><b>1. Pourquoi le modèle LAB-vCenter utilise-t-il « Fournir dans la demande », et comment évite-t-on ESC1 ?</b></summary> <p>Le vCenter n'est pas dans l'AD : son nom doit venir de sa CSR. On neutralise ESC1 par l'approbation obligatoire du gestionnaire de la CA et par un droit d'inscription réservé aux Admins du domaine.</p></details>
 
-<details><summary><b>2. Pourquoi le certificat du vCenter doit-il contenir à la fois 192.168.50.12 et localhost ?</b></summary> <p>192.168.50.12 est son PNID, l'adresse par laquelle le navigateur et Horizon s'y connectent. localhost est son nom d'hôte système. Le vCenter refuse un certificat qui ne contient pas les deux.</p></details>
+<details><summary><b>2. Pourquoi le certificat du vCenter contient-il 192.168.50.12 deux fois, en nom DNS et en adresse IP ?</b></summary> <p>Le vCenter exige que son PNID, même quand c'est une IP, figure parmi les noms DNS du certificat. Les navigateurs et Horizon, eux, comparent une adresse IP aux entrées « adresse IP ». Il faut donc les deux.</p></details>
 
 <details><summary><b>3. Pourquoi le mode hybride plutôt qu'une VMCA subordonnée ?</b></summary> <p>On ne remplace que le certificat visible par les utilisateurs. Une VMCA subordonnée pourrait émettre des certificats reconnus par tout le domaine : c'est trop de pouvoir pour une appliance.</p></details>
 
