@@ -2,7 +2,7 @@
 title: 08 - Préparer l'infrastructure pour Horizon
 description: 
 published: 1
-date: 2026-11-19T21:27:30.630Z
+date: 2026-11-20T12:47:55.596Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:23:02.217Z
@@ -43,7 +43,7 @@ dateCreated: 2026-11-18T13:23:02.217Z
 
 ### 2.1 La VM
 
-![VM Horizon : Windows Server 2022, Horizon.lab.lan, 192.168.50.13](/vdi/08-preparation-horizon/20-vm-horizon-resume.png)
+![VM Horizon : Windows Server 2022, Horizon.lab.lan, 192.168.50.13](/vdi/08-20-vm-horizon-resume.png)
 
 | Point | Attendu | Chez toi |
 |---|---|---|
@@ -85,27 +85,27 @@ Sur DC01 : `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le mod�
 
 **Général :** nom `LAB-HorizonServer`, validité **1 an**, renouvellement **6 semaines**, ☐ **Publier le certificat dans Active Directory**.
 
-![Modèle - onglet Général](/vdi/08-preparation-horizon/01-modele-general.png)
+![Modèle - onglet Général](/vdi/08-01-modele-general.png)
 
 **Traitement de la demande :** ☑ **Autoriser l'exportation de la clé privée**. Horizon l'exige.
 
-![Modèle - onglet Traitement de la demande](/vdi/08-preparation-horizon/02-modele-traitement-demande.png)
+![Modèle - onglet Traitement de la demande](/vdi/08-02-modele-traitement-demande.png)
 
 **Chiffrement :** **Services de chiffrement hérités**, taille **2048**, ● *Les demandes doivent utiliser l'un des fournisseurs suivants* : ☑ **Microsoft RSA SChannel Cryptographic Provider** seulement.
 
-![Modèle - onglet Chiffrement](/vdi/08-preparation-horizon/03-modele-chiffrement.png)
+![Modèle - onglet Chiffrement](/vdi/08-03-modele-chiffrement.png)
 
 > **Pourquoi un fournisseur « hérité » ?** Le Connection Server est une application Java : il lit plus facilement une clé stockée par l'ancien fournisseur SChannel que par le fournisseur moderne (KSP).
 
 **Nom du sujet :** ● **Construire à partir des informations de cet annuaire Active Directory**, format **Nom DNS**, ☑ **Nom DNS**. Décoche le reste.
 
-![Modèle - onglet Nom du sujet](/vdi/08-preparation-horizon/04-modele-nom-du-sujet.png)
+![Modèle - onglet Nom du sujet](/vdi/08-04-modele-nom-du-sujet.png)
 
 > 🔒 **Le réglage le plus important.** Le nom vient de l'AD (`Horizon.lab.lan`), le demandeur ne peut pas le choisir : pas d'attaque **ESC1**.
 
 **Sécurité :** **Ajouter…** > **Types d'objets** > ☑ **Ordinateurs** > `HORIZON` > **OK**. Pour **HORIZON (LAB\HORIZON$)** : ☑ **Lecture**, ☑ **Inscrire**. Pas d'inscription automatique.
 
-![Modèle - onglet Sécurité : HORIZON$ en Lecture et Inscrire](/vdi/08-preparation-horizon/05-modele-securite-horizon.png)
+![Modèle - onglet Sécurité : HORIZON$ en Lecture et Inscrire](/vdi/08-05-modele-securite-horizon.png)
 
 > 🔒 Seule la machine **HORIZON$** peut demander ce certificat. Les *Utilisateurs authentifiés* n'ont que la **Lecture**.
 
@@ -115,7 +115,7 @@ Sur DC01 : `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le mod�
 
 `certsrv.msc` > **LAB-ROOT-CA** > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-HorizonServer** > **OK**.
 
-![certsrv : LAB-HorizonServer et LAB-DomainController publiés](/vdi/08-preparation-horizon/06-certsrv-modele-publie.png)
+![certsrv : LAB-HorizonServer et LAB-DomainController publiés](/vdi/08-06-certsrv-modele-publie.png)
 
 > ⚠️ **Redémarre la VM Horizon** après la publication. HORIZON$ ne voit son nouveau droit qu'avec un nouveau ticket Kerberos. Sinon, le modèle n'apparaîtra pas lors de la demande (page 10).
 
@@ -130,7 +130,7 @@ Dans le vSphere Client, connecté en **adm-vmw-afaye@lab.lan**.
 1. Onglet **VM et modèles** > clic droit sur **DC-LAB** > **Nouveau dossier > Nouveau dossier de VM et de modèles**.
 2. Crée **VDI**, puis dedans **Golden-Image** et **Pools**.
 
-![Dossiers VDI > Golden-Image et Pools](/vdi/08-preparation-horizon/07-vcenter-dossiers-vdi.png)
+![Dossiers VDI > Golden-Image et Pools](/vdi/08-07-vcenter-dossiers-vdi.png)
 
 > Horizon rangera ses bureaux dans **Pools**. On pourra plus tard restreindre les droits d'Horizon à ce seul dossier.
 
@@ -138,9 +138,9 @@ Dans le vSphere Client, connecté en **adm-vmw-afaye@lab.lan**.
 
 Windows 11 réclame une puce **TPM**. En VM, c'est un **vTPM**, qui exige un **fournisseur de clés** dans le vCenter. Le fournisseur natif (NKP) est intégré au vCenter, mais il n'est **utilisable qu'une fois sauvegardé**. Dans le lab, la sauvegarde échoue :
 
-![NKP-LAB : non sauvegardé](/vdi/08-preparation-horizon/08-nkp-non-sauvegarde.png)
+![NKP-LAB : non sauvegardé](/vdi/08-08-nkp-non-sauvegarde.png)
 
-![Échec de la sauvegarde du fournisseur de clés natif](/vdi/08-preparation-horizon/09-nkp-echec-sauvegarde.png)
+![Échec de la sauvegarde du fournisseur de clés natif](/vdi/08-09-nkp-echec-sauvegarde.png)
 
 > **Piège rencontré :** la sauvegarde échoue avec ou sans mot de passe. La cause la plus probable est le nom d'hôte système du vCenter, resté `localhost` (page 03). Le corriger renommerait le PNID. **On renonce donc au vTPM** dans le lab.
 
@@ -176,35 +176,35 @@ Windows 11 réclame une puce **TPM**. En VM, c'est un **vTPM**, qui exige un **f
 
 **Banque de données**
 
-![Rôle - Banque de données](/vdi/08-preparation-horizon/10-role-banque-de-donnees.png)
+![Rôle - Banque de données](/vdi/08-10-role-banque-de-donnees.png)
 
 **Dossier**
 
-![Rôle - Dossier](/vdi/08-preparation-horizon/11-role-dossier.png)
+![Rôle - Dossier](/vdi/08-11-role-dossier.png)
 
 **Global** (*Désactiver des méthodes* est plus bas dans la liste)
 
-![Rôle - Global](/vdi/08-preparation-horizon/12-role-global.png)
+![Rôle - Global](/vdi/08-12-role-global.png)
 
 **Hôte** (*Paramètres avancés* est plus haut, dans *Configuration*)
 
-![Rôle - Hôte](/vdi/08-preparation-horizon/13-role-hote.png)
+![Rôle - Hôte](/vdi/08-13-role-hote.png)
 
 **Réseau**
 
-![Rôle - Réseau](/vdi/08-preparation-horizon/14-role-reseau.png)
+![Rôle - Réseau](/vdi/08-14-role-reseau.png)
 
 **Ressource**
 
-![Rôle - Ressource](/vdi/08-preparation-horizon/15-role-ressource.png)
+![Rôle - Ressource](/vdi/08-15-role-ressource.png)
 
 **Stratégies de stockage de machine virtuelle**
 
-![Rôle - Stratégies de stockage](/vdi/08-preparation-horizon/16-role-strategies-stockage.png)
+![Rôle - Stratégies de stockage](/vdi/08-16-role-strategies-stockage.png)
 
 **Machine virtuelle** (ici *Modifier la configuration*, entièrement cochée ; les autres sous-catégories suivent le tableau)
 
-![Rôle - Machine virtuelle](/vdi/08-preparation-horizon/17-role-machine-virtuelle.png)
+![Rôle - Machine virtuelle](/vdi/08-17-role-machine-virtuelle.png)
 
 > **Contrôle :** **Rôles** > **Horizon-InstantClone** > onglet **Privilèges** : compare l'arborescence au tableau.
 >
@@ -217,11 +217,11 @@ La documentation Omnissa demande une autorisation **sur l'objet vCenter Server**
 1. **Hôtes et clusters** > **192.168.50.12** (tout en haut) > onglet **Autorisations** > **Ajouter**.
 2. Domaine **LAB.lan**, utilisateur **svc-horizon-vc**, rôle **Horizon-InstantClone**, ☑ **Propager vers les enfants** > **OK**.
 
-![Ajouter une autorisation : svc-horizon-vc, Horizon-InstantClone, propagée](/vdi/08-preparation-horizon/18-autorisation-svc-horizon-vc.png)
+![Ajouter une autorisation : svc-horizon-vc, Horizon-InstantClone, propagée](/vdi/08-18-autorisation-svc-horizon-vc.png)
 
 **Contrôle :** `LAB\svc-horizon-vc`, rôle **Horizon-InstantClone**, défini dans **Cet objet et ses enfants**.
 
-![Autorisations du vCenter](/vdi/08-preparation-horizon/19-autorisations-resultat.png)
+![Autorisations du vCenter](/vdi/08-19-autorisations-resultat.png)
 
 > 🔒 `svc-horizon-vc` **ne doit pas** être dans `GG-VMW-Admins`. S'il fuit, l'attaquant peut manipuler des VM, mais pas reconfigurer le vCenter, l'ESXi ni le SSO.
 
