@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T11:51:53.986Z
+date: 2026-11-20T12:02:59.576Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -219,7 +219,8 @@ openssl req -in vcenter.csr -noout -text | grep -A1 "Subject Alternative Name"
 
 La réponse doit être `DNS:192.168.50.12, IP Address:192.168.50.12, DNS:vcenter.lab.lan`.
 
-![11-csr-openssl-san.png](/vdi/11-csr-openssl-san.png)
+![openssl : les noms alternatifs de la CSR](/vdi/11-csr-openssl-san.png)
+
 **3.5 Copier la CSR sur DC01**
 
 ```
@@ -246,7 +247,7 @@ Nom DNS=vcenter.lab.lan
 
 La première ligne est la plus importante : sans elle, le vCenter refusera le certificat.
 
-![12-csr-certutil-san.png](/vdi/12-csr-certutil-san.png)
+![certutil : les noms alternatifs de la CSR](/vdi/12-csr-certutil-san.png)
 
 S'il en manque une, **refais l'étape 3**. Une CSR incomplète serait signée sans problème, mais le vCenter refuserait le certificat à l'import.
 
@@ -287,23 +288,45 @@ Remplace `5` par ton identifiant. Choisis **LAB-ROOT-CA** si on te le demande. C
    Copie tout le bloc, de `-----BEGIN PRIVATE KEY-----` à `-----END PRIVATE KEY-----` inclus. Sur le PC, colle-le dans le Bloc-notes et enregistre-le sous `vcenter.key` (**Type : Tous les fichiers**), à côté de `vcenter.cer` et `lab-root-ca.cer`.
    > 🔒 Ce fichier est la clé du vCenter : ne le copie nulle part ailleurs, et supprime-le dès l'étape 10.
 2. **Gestion des certificats** > onglet **SSL de machine** > **Importer et remplacer un certificat**.
-3. Choisis **Remplacer par un certificat externe (avec clé privée)**.
-4. Renseigne :
+3. **Choisir l'option appropriée** : **Remplacer par le certificat signé en externe et la clé privée** > **Suivant**.
+4. **Remplacer par un certificat signé** : renseigne les trois champs avec **Parcourir le fichier** :
 
 | Champ | Fichier |
 |---|---|
-| Certificat SSL de la machine | `vcenter.cer` |
+| Certificat SSL de machine | `vcenter.cer` |
+| Chaîne de certificats racines approuvés | `lab-root-ca.cer` |
 | Clé privée | `vcenter.key` |
-| Chaîne de certificats | `lab-root-ca.cer` |
 
-5. **Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué. La page devient indisponible pendant ce temps, c'est normal.
+![Importer le certificat, la chaîne et la clé privée](/vdi/13-import-cle-privee.png)
+
+> 🔒 Sur cette capture, le contenu de la clé privée est masqué. Ne publie jamais une capture ou une vidéo où elle apparaît, même en partie.
+
+5. **Sauvegarde système** : coche ☑ **J'ai sauvegardé vCenter Server et les bases de données associées**. C'est le snapshot de l'étape 2 qui joue ce rôle dans le lab. **Suivant**.
+
+![Confirmation de la sauvegarde](/vdi/14-import-sauvegarde.png)
+
+6. **Vérifier** > **Terminer**. Le bandeau *Remplacement en cours* s'affiche, puis **[CERTIFICATE] Replace cert Success**.
+
+![Remplacement réussi](/vdi/15-import-succes.png)
+
+7. Les services du vCenter redémarrent : compte **quelques minutes**. Une fenêtre *Le certificat vCenter a été modifié* propose d'**Actualiser** le navigateur : accepte.
 
 #### Étape 9 : contrôler
 
-1. Ferme le navigateur et rouvre `https://192.168.50.12/ui` depuis la VM Horizon ou une machine du domaine : **cadenas**, certificat **délivré par LAB-ROOT-CA**, aucune alerte.
-2. **Gestion des certificats > SSL de machine** : *Émetteur* = **LAB-ROOT-CA**, état **Valide**, fin de validité dans un an.
+1. **Gestion des certificats > SSL de machine** : *Émetteur* = **LAB-ROOT-CA**, état **Valide**, fin de validité dans un an (20 nov. 2027).
+
+![SSL de machine : émis par LAB-ROOT-CA](/vdi/16-ssl-machine-lab-root-ca.png)
+
+2. Depuis **une machine du domaine** (ici DC01, avec Edge), ouvre `https://192.168.50.12` : **cadenas**, *La connexion est sécurisée*, *Le certificat est valide*.
+
+![DC01 : la connexion est sécurisée](/vdi/17-dc01-connexion-securisee.png)
+
+   **Le certificat est valide** > *Émis par* : **LAB-ROOT-CA**.
+
+![DC01 : certificat émis par LAB-ROOT-CA](/vdi/18-dc01-certificat-lab-root-ca.png)
+
 3. L'hôte **192.168.50.11** est toujours **Connecté** dans l'inventaire.
-4. Depuis ton PC (hors domaine) : l'alerte disparaît une fois LAB-ROOT-CA importé dans ses **Autorités de certification racines de confiance** (page 10, partie 7).
+4. Depuis **ton PC** (hors domaine), le navigateur affiche encore *« Votre connexion n'est pas privée · NET::ERR_CERT_AUTHORITY_INVALID »*. C'est normal : ton PC ne connaît pas LAB-ROOT-CA. L'alerte disparaît dès que tu l'importes dans ses **Autorités de certification racines de confiance** (page 10, partie 7).
 5. Tout fonctionne ? **Supprime le snapshot** du vCenter.
 
 #### Étape 10 : faire le ménage
