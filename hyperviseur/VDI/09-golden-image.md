@@ -2,7 +2,7 @@
 title: 09 - La golden image Windows 11
 description: 
 published: 1
-date: 2026-11-19T21:27:53.686Z
+date: 2026-11-20T13:56:10.722Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:23:42.572Z
@@ -96,6 +96,9 @@ Clic droit sur **VDI > Golden-Image** > **Nouvelle machine virtuelle** :
 2. Sur le **premier écran** (langue), **Maj + F10** : une invite de commandes s'ouvre.
    > Si la console Web ne transmet pas le raccourci, utilise **Lancer Remote Console** (VMRC).
 3. Tape `regedit` > **Entrée** > va dans **HKEY_LOCAL_MACHINE > SYSTEM > Setup**.
+
+![regedit ouvert depuis l'installation de Windows (Maj + F10)](/vdi/09-01-regedit-setup.png)
+
 4. Clic droit sur **Setup** > **Nouveau > Clé** > `LabConfig`.
 5. Dans **LabConfig**, clic droit > **Nouveau > Valeur DWORD (32 bits)**, trois fois, chacune avec la donnée `1` :
 
@@ -104,6 +107,8 @@ Clic droit sur **VDI > Golden-Image** > **Nouvelle machine virtuelle** :
 | `BypassTPMCheck` | Pas de vTPM |
 | `BypassSecureBootCheck` | Par précaution |
 | `BypassRAMCheck` | La VM a 3 Go, Windows 11 en demande 4 |
+
+![La clé LabConfig et ses trois valeurs](/vdi/09-02-labconfig.png)
 
 > **Plus rapide**, dans l'invite de commandes au lieu de regedit :
 > ```
@@ -128,7 +133,7 @@ Clic droit sur **VDI > Golden-Image** > **Nouvelle machine virtuelle** :
 
 ### 4.3 Le compte local
 
-La carte **VMXNET3** n'a pas encore de pilote : Windows démarre **sans réseau**, ce qui permet de créer un **compte local**.
+Avec une carte **VMXNET3**, Windows n'a pas encore de pilote : il démarre **sans réseau**, ce qui facilite la création d'un **compte local**. Avec une carte **E1000E** (*Intel 82574L*), Windows a son pilote et le réseau fonctionne tout de suite : utilise alors les commandes ci-dessous pour rester en compte local.
 
 1. Région, clavier : **Oui**, ignore la deuxième disposition.
 2. Écran **Connectons-nous à un réseau** :
@@ -143,7 +148,9 @@ La carte **VMXNET3** n'a pas encore de pilote : Windows démarre **sans réseau*
 3. Compte `admin-gi`, mot de passe dans le coffre, questions de sécurité.
 4. **Confidentialité :** désactive tout.
 
-> **Ne joins pas** la golden image au domaine.
+> **Ne joins pas** la golden image au domaine. **Win + R** > `sysdm.cpl` : *Nom complet de l'ordinateur* `GI-W11`, *Groupe de travail* `WORKGROUP`.
+
+![GI-W11 reste dans le groupe de travail](/vdi/09-03-gi-w11-workgroup.webp)
 
 ---
 
@@ -151,13 +158,29 @@ La carte **VMXNET3** n'a pas encore de pilote : Windows démarre **sans réseau*
 
 1. vSphere Client : **GI-W11** > **Actions > SE invité > Installer VMware Tools** > **Monter**.
 2. Dans la VM : **Explorateur > Lecteur DVD** > `setup64.exe` > **Standard** > redémarre. La carte VMXNET3 fonctionne.
-3. **Test du DHCP** (page 04) : `ipconfig /all` doit afficher
+3. **Vérifie la carte réseau** : si `ipconfig /all` affiche *Intel(R) 82574L Gigabit Network Connection*, la VM a une carte **E1000E** et pas VMXNET3. Elle fonctionne, mais VMXNET3 est plus rapide et consomme moins de processeur, ce qui compte pour l'affichage Blast. Pour changer :
+   1. éteins la VM ;
+   2. **Modifier les paramètres** > **Ajouter un nouveau périphérique > Adaptateur réseau** > **VM Network**, type **VMXNET3** ;
+   3. supprime l'ancienne carte (croix ✕) > **OK** ;
+   4. rallume : Windows installe le pilote VMXNET3 fourni par les Tools, et l'IP est de nouveau attribuée par le DHCP.
+4. **Test du DHCP** (page 04) : `ipconfig /all` doit afficher
    - une adresse entre **192.168.50.100 et .150** ;
    - **Serveurs DNS : 192.168.50.10** ;
    - **Suffixe DNS : lab.lan**.
-4. **Paramètres > Windows Update** : tout installer, redémarrer, recommencer jusqu'à ce qu'il n'y ait plus rien.
-5. **Contrôles :** `winver` = Windows 11 · `msinfo32` > *État du démarrage sécurisé* = **Activé** · `tpm.msc` = « Impossible de trouver un module de plateforme sécurisée compatible » (normal).
-6. Installe les **applications** communes à tous les bureaux (navigateur, Notepad++…). Rien de personnel.
+
+![ipconfig : IP, DNS et suffixe reçus du DHCP de DC01](/vdi/09-04-ipconfig-dhcp.png)
+
+   > Regarde aussi *Bail obtenu* et *Bail expirant* : l'écart doit être de **8 heures** (page 04, partie 3.2). S'il est de 8 jours, c'est la valeur par défaut de Windows : **DHCP > IPv4 > Étendue** > clic droit > **Propriétés** > **Durée du bail pour les clients DHCP** > 8 heures.
+
+5. **Les mises à jour :** **Paramètres > Windows Update** : tout installer, redémarrer, recommencer jusqu'à ce qu'il n'y ait plus rien.
+   > **Dans un lab, est-ce vraiment utile ?** Oui, une fois, **avant le premier snapshot** :
+   > - les failles corrigées le sont dans **tous** les bureaux d'un coup ;
+   > - l'Horizon Agent exige une version de Windows 11 supportée : une ISO ancienne peut ne pas l'être ;
+   > - dans un bureau cloné, une mise à jour est perdue à chaque déconnexion. C'est donc dans la golden image qu'il faut la faire.
+   >
+   > **Astuces pour un lab qui manque de ressources :** donne temporairement **4 Go et 4 vCPU** à la VM pendant les mises à jour, puis redescends à 3 Go et 2 vCPU. Les mises à jour suivantes se feront à chaque nouvelle version de l'image (`v2`, `v3`…), pas en continu. OSOT désactivera ensuite Windows Update dans les bureaux (partie 7).
+6. **Contrôles :** `winver` = Windows 11 · `msinfo32` > *État du démarrage sécurisé* = **Activé** · `tpm.msc` = « Impossible de trouver un module de plateforme sécurisée compatible » (normal).
+7. Installe les **applications** communes à tous les bureaux (navigateur, Notepad++…). Rien de personnel.
 
 ---
 
@@ -174,16 +197,27 @@ Copie l'installeur **Omnissa Horizon Agent** (x64), **de la même version que le
 
 > **L'ordre compte : VMware Tools d'abord, Horizon Agent ensuite.** À chaque mise à jour des Tools, réinstalle l'agent.
 
+**Contrôle :** `services.msc`. Les services **Omnissa Horizon Agent**, **Blast**, **Instant Clone Agent**, **Monitoring**, **Printer Redirection** et **KSM Session Notification** sont *En cours d'exécution*, en démarrage *Automatique*.
+
+![Les services de l'Horizon Agent](/vdi/09-05-services-horizon-agent.png)
+
 ---
 
 ## 7. Optimiser avec OSOT
 
 L'**Omnissa OS Optimization Tool** désactive ce qui ne sert à rien dans un bureau virtuel (indexation, tâches planifiées, services, applications du Store…). Les bureaux démarrent plus vite et consomment moins.
 
-1. Lance **OSOT** en administrateur.
-2. Onglet **Analyze** > **Analyze**.
-3. Onglet **Optimize** > garde le modèle proposé > **Optimize** > redémarre.
-4. Onglet **Finalize** : coche tout sauf *Clean up Windows Update* si c'est trop long > **Finalize**. La VM s'éteint.
+0. **Télécharge OSOT** : il n'est **pas** inclus dans l'Horizon Agent. C'est un téléchargement à part, gratuit, sur le portail Omnissa (là où tu as pris l'Agent), dans les téléchargements d'Horizon 8 : *Omnissa OS Optimization Tool*. C'est un simple `.exe` (par exemple `Omnissa_OSOT_….exe`) : rien à installer. Copie-le dans la VM, par exemple sur le Bureau.
+1. Clic droit sur l'exe > **Exécuter en tant qu'administrateur**. En haut, *Informations système* indique l'édition et la **version** de Windows : vérifie qu'elle est à jour (voir l'encadré ci-dessous).
+2. Onglet **Optimiser** : garde le modèle proposé (*Omnissa\Windows 11 and Server…*) > **Analyser**, puis **Optimiser** > redémarre.
+
+![OSOT : optimisation en cours](/vdi/09-06-osot-optimiser.png)
+
+3. Onglet **Finaliser** : coche tout sauf *Nettoyer Windows Update* si c'est trop long > **Finaliser**. La VM s'éteint.
+
+> ⚠️ **OSOT désactive Windows Update.** Fais donc les mises à jour (partie 5) **avant** l'optimisation. Si tu as optimisé trop tôt, onglet **Mettre à jour** d'OSOT : il réactive Windows Update le temps d'installer les mises à jour, puis le désactive de nouveau. Relance ensuite **Optimiser**, car une grosse mise à jour remet certains réglages par défaut.
+
+> **Vérifier la version :** `22631.xxxx` correspond à Windows 11 **23H2**, dont le support a pris fin en novembre 2025 pour les éditions Pro et Famille. Windows Update proposera de passer en **24H2** ou **25H2** (numéros `26100` ou `26200`). Accepte : c'est long, donne temporairement 4 Go et 4 vCPU à la VM. Après cette mise à niveau, **répare l'Horizon Agent** (**Paramètres > Applications** > *Omnissa Horizon Agent* > **Modifier** > **Réparer**), puis relance l'optimisation.
 
 > ❌ **Ne fais pas l'étape *Generalize*** (Sysprep) : les clones instantanés n'en ont pas besoin.
 
