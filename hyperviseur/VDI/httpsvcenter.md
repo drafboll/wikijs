@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T10:08:14.616Z
+date: 2026-11-20T10:20:53.446Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -40,20 +40,23 @@ Les machines du domaine font déjà confiance à LAB-ROOT-CA. Si elle signe le c
 | **Hybride** | On remplace **seulement le certificat SSL de la machine** (celui du site web) par un certificat LAB-ROOT-CA. La VMCA continue de signer les certificats des ESXi et des services internes | ✅ **Recommandé par VMware, retenu ici** |
 | VMCA subordonnée | La VMCA devient une sous-CA de LAB-ROOT-CA | ❌ Lourd, et donne au vCenter le pouvoir d'émettre des certificats reconnus par tout le domaine |
 
-### 1.3 Le piège du PNID
 
-Le PNID du vCenter est son IP (page 03). Le certificat doit donc contenir, dans ses noms alternatifs :
+### 1.3 Ce que doit contenir le certificat
 
-| Nom alternatif | Valeur |
-|---|---|
-| **Adresse IP** | **`192.168.50.12`** (obligatoire : c'est le PNID) |
-| Nom DNS | `vcenter.lab.lan` (pour l'ouvrir aussi par son nom) |
+Le PNID du vCenter est son IP, et son **nom d'hôte système** est resté `localhost` (page 03). Avant d'accepter un certificat, le vCenter vérifie qu'il contient **les deux**.
 
-> Si le PNID n'est pas dans le certificat, le vCenter refuse le remplacement.
+| Champ | Valeur | Pourquoi |
+|---|---|---|
+| Nom commun (CN) | `192.168.50.12` | Le PNID |
+| Nom alternatif : **adresse IP** | **`192.168.50.12`** | Obligatoire : l'adresse utilisée par le navigateur et Horizon |
+| Nom alternatif : **nom DNS** | **`localhost`** | Obligatoire : le nom d'hôte système du vCenter |
+| Nom alternatif : nom DNS | `vcenter.lab.lan` | Pour ouvrir aussi le vCenter par son nom |
+
+> Le certificat actuel, émis par la VMCA, l'est d'ailleurs pour `localhost` : colonne *Émis pour* de la **Gestion des certificats**. Un nom `localhost` dans un certificat est inhabituel, mais sans danger ici : la clé privée ne quitte jamais le vCenter. L'enlever imposerait de renommer le vCenter, ce qu'on s'interdit.
 
 ### 1.4 Le modèle LAB-vCenter
 
-Ici, le nom vient **de la demande** générée par le vCenter (une CSR), puisque le vCenter n'est pas dans l'AD. C'est exactement la situation de l'attaque **ESC1**. On la neutralise par trois verrous :
+Le nom du certificat vient **de la demande** générée par le vCenter (une **CSR**), puisque le vCenter n'est pas dans l'AD. C'est exactement la situation de l'attaque **ESC1**. On la neutralise par trois verrous :
 
 | Verrou | Effet |
 |---|---|
@@ -61,90 +64,155 @@ Ici, le nom vient **de la demande** générée par le vCenter (une CSR), puisque
 | Droit *Inscrire* réservé aux **Admins du domaine** | Un utilisateur ordinaire ne peut même pas soumettre de demande |
 | Usage limité à **Authentification du serveur** | Le certificat ne permet pas d'ouvrir une session dans le domaine |
 
-Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modèle** :
+**Créer le modèle.** Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modèle** :
 
 | Onglet | Réglage |
 |---|---|
 | **Compatibilité** | Windows Server 2016 / Windows 10 – Windows Server 2016 |
-| **Général** | Nom `LAB-vCenter` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
+| **Général** | Nom complet et nom du modèle : `LAB-vCenter` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
 | **Traitement de la demande** | ☐ Autoriser l'exportation de la clé privée (la clé est générée **dans le vCenter** et n'en sort pas) |
-| **Chiffrement** | Fournisseur de stockage de clés, RSA, **2048** minimum |
-| **Nom du sujet** | ● **Fournir dans la demande** (l'avertissement sur la sécurité est normal : les deux verrous suivants y répondent) |
+| **Chiffrement** | **Fournisseur de stockage de clés**, RSA, **2048**, SHA256 · ● *Les demandes peuvent utiliser un fournisseur disponible…* (la clé vient du vCenter : le fournisseur Windows ne sert pas) |
+| **Nom du sujet** | ● **Fournir dans la demande** (l'avertissement de sécurité est normal : les deux verrous suivants y répondent) |
 | **Conditions d'émission** | ☑ **Approbation du gestionnaire de certificat de l'autorité de certification** |
 | **Extensions > Stratégies d'application** | Seulement **Authentification du serveur** |
-| **Sécurité** | **Admins du domaine** : Lecture + Inscrire · **Utilisateurs authentifiés** : Lecture seulement · supprime tout autre droit *Inscrire* |
+| **Sécurité** | **Admins du domaine** : Lecture + Inscrire · **Utilisateurs authentifiés** : Lecture seulement · aucun autre droit *Inscrire* |
 
-**OK**, puis `certsrv.msc` > **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter**.
+**OK**.
 
-### 1.5 Préparer le vCenter
+**Publier le modèle.** `certsrv.msc` > **LAB-ROOT-CA** > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter** > **OK**.
 
-1. 📸 **Snapshot de la VM VCENTER** (éteinte de préférence, ou sans la mémoire), pour pouvoir revenir en arrière.
-2. Exporte le certificat **LAB-ROOT-CA** : `certsrv.msc` > clic droit sur **LAB-ROOT-CA** > **Propriétés** > **Afficher le certificat** > **Détails** > **Copier dans un fichier** > **X.509 encodé en base 64** > `C:\Temp\lab-root-ca.cer`.
-3. Dans le vSphere Client (en **administrator@vsphere.local**) : **Menu ☰ > Administration > Certificats > Gestion des certificats**.
-4. Section **Certificats racines approuvés** > **Ajouter** > `lab-root-ca.cer` > **Ajouter**.
+### 1.5 La procédure, étape par étape
 
-> Le vCenter fait maintenant confiance à LAB-ROOT-CA. Sans cette étape, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne.
+> Tous les fichiers sont rangés sur DC01 dans **`C:\PKI\vcenter\`**. Toutes les commandes se lancent sur DC01, en **adm-dom-afaye**, dans un PowerShell ouvert avec **clic droit > Exécuter en tant qu'administrateur**.
 
-### 1.6 Générer la demande (CSR)
+#### Étape 1 : vérifier les prérequis
 
-**Gestion des certificats** > section **Certificat SSL de la machine** > **Actions > Générer une demande de signature de certificat (CSR)** :
+1. Le modèle est publié :
+   ```
+   certutil -CATemplates
+   ```
+   `LAB-vCenter` doit apparaître dans la liste, avec `LAB-DomainController` et `LAB-HorizonServer`.
+2. Dans `certtmpl.msc` > **LAB-vCenter**, contrôle les trois onglets qui comptent :
+
+| Onglet | Attendu |
+|---|---|
+| Nom du sujet | ● **Fournir dans la demande** |
+| Conditions d'émission | ☑ **Approbation du gestionnaire de certificat** |
+| Sécurité | **Admins du domaine** : ☑ Lecture, ☑ Inscrire |
+
+#### Étape 2 : préparer le vCenter
+
+1. 📸 **Snapshot de la VM VCENTER**, sans la mémoire, pour pouvoir revenir en arrière.
+2. **Exporte la racine LAB-ROOT-CA** : `certsrv.msc` > clic droit sur **LAB-ROOT-CA** > **Propriétés** > **Afficher le certificat** > onglet **Détails** > **Copier dans un fichier** > **X.509 encodé en base 64 (.CER)** > `C:\PKI\vcenter\lab-root-ca.cer`. Copie-le sur le PC d'où tu ouvres le vSphere Client.
+3. vSphere Client > **Menu ☰ > Administration > Certificats > Gestion des certificats** > onglet **Racine de confiance** :
+   - si **LAB-ROOT-CA** est déjà dans la liste, passe à l'étape 3 ;
+   - sinon, **Ajouter** > `lab-root-ca.cer` > **Ajouter**.
+
+> Sans la racine dans le vCenter, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne.
+
+#### Étape 3 : générer la CSR
+
+**Gestion des certificats** > onglet **SSL de machine** > **Générer une demande de signature de certificat (CSR)** :
 
 | Champ | Valeur |
 |---|---|
 | Nom commun | `192.168.50.12` |
-| Organisation / Unité / Pays / Ville | `LAB` / `vSphere` / `FR` / ta ville |
-| Nom d'hôte / Autre nom de l'objet | `192.168.50.12`, `vcenter.lab.lan` |
-| Taille de la clé | **2048** (ou 3072) |
+| Organisation | `LAB` |
+| Unité d'organisation | `vSphere` |
+| Pays / État / Localité | `FR` / ta région / ta ville |
+| Adresse e-mail | Facultatif |
+| Nom d'hôte | `localhost` (laisse la valeur proposée si c'est déjà elle) |
+| **Nom de remplacement de l'objet** | **`localhost, vcenter.lab.lan, 192.168.50.12`** |
+| Taille de la clé | **2048** |
 
-**Suivant** > **Télécharger** le fichier (ou **Copier**) > enregistre-le sous `vcenter.csr` et copie-le dans `C:\Temp` sur DC01.
+**Suivant** > **Télécharger**. Enregistre le fichier sous `vcenter.csr`, copie-le sur DC01 dans `C:\PKI\vcenter\` (en **remplaçant** l'ancien).
 
-> Le vCenter garde la clé privée. Ne génère pas une seconde CSR avant d'avoir importé le certificat : la première deviendrait inutilisable.
+> ⚠️ Le vCenter garde la clé privée de la **dernière** CSR générée. Ne génère plus d'autre CSR avant la fin de la procédure : la précédente deviendrait inutilisable.
 
-### 1.7 Faire signer la demande
-
-Sur DC01, en **adm-dom-afaye**, invite de commandes administrateur :
-
-```
-certreq -submit -attrib "CertificateTemplate:LAB-vCenter" C:\Temp\vcenter.csr
-```
-
-Choisis **LAB-ROOT-CA**. La réponse est *« Le certificat demandé est en attente »*, avec un **numéro de requête** (RequestId).
-
-1. `certsrv.msc` > **Demandes en attente** > double-clic sur la demande : vérifie le nom et les noms alternatifs (**l'IP 192.168.50.12**).
-2. Clic droit > **Toutes les tâches > Délivrer**.
-3. Récupère le certificat :
+#### Étape 4 : vérifier la CSR
 
 ```
-certreq -retrieve <RequestId> C:\Temp\vcenter.cer
+certutil -dump C:\PKI\vcenter\vcenter.csr
 ```
+
+Dans la section **Autre nom de l'objet**, les trois lignes doivent apparaître :
+
+```
+Nom DNS=localhost
+Nom DNS=vcenter.lab.lan
+Adresse IP=192.168.50.12
+```
+
+S'il en manque une, **refais l'étape 3**. Une CSR incomplète serait signée sans problème, mais le vCenter refuserait le certificat à l'import.
+
+#### Étape 5 : soumettre la demande
+
+```
+certreq -submit -attrib "CertificateTemplate:LAB-vCenter" C:\PKI\vcenter\vcenter.csr
+```
+
+Choisis **LAB-ROOT-CA** si on te le demande. Réponse attendue : *« Le certificat demandé est en attente »*, avec un **identifiant de requête** (par exemple `5`). **Note-le.**
+
+> 🔒 Grâce à l'approbation obligatoire, rien n'est encore délivré : la demande attend ta décision.
+
+#### Étape 6 : approuver la demande
+
+1. `certsrv.msc` > **LAB-ROOT-CA** > **Demandes en attente**.
+2. Double-clic sur ta demande (même identifiant). Vérifie que le nom et les noms alternatifs sont bien `192.168.50.12`, `localhost` et `vcenter.lab.lan`.
+3. Clic droit sur la demande > **Toutes les tâches > Délivrer**. Elle passe dans **Certificats délivrés**.
 
 > 🔒 **C'est ici que joue l'approbation :** une demande au nom de `dc01.lab.lan` ou d'un administrateur ne passerait jamais cette étape.
 
-> **Piège rencontré :** *« Les autorisations sur le modèle de certificat n'autorisent pas l'utilisateur actuel à s'inscrire… 0x80094012 (CERTSRV_E_TEMPLATE_DENIED) »*, alors qu'on est connecté en `adm-dom-afaye`. Sur un serveur, une console **non élevée** reçoit un jeton filtré par l'UAC : le groupe *Admins du domaine* y est désactivé, donc le droit *Inscrire* du modèle ne s'applique pas. Relance l'invite de commandes avec **Exécuter en tant qu'administrateur** et soumets à nouveau la même CSR. Si l'erreur persiste, vérifie l'onglet **Sécurité** du modèle (*Admins du domaine* : Lecture + Inscrire), puis redémarre le service **Services de certificats Active Directory** pour qu'il relise le modèle.
+#### Étape 7 : récupérer le certificat
 
-> **Piège rencontré (suite) :** *« Le modèle de certificat demandé n'est pas pris en charge par cette autorité de certification… 0x80094800 (CERTSRV_E_UNSUPPORTED_CERT_TYPE) »*. Le modèle existe dans l'AD mais **n'est pas publié** sur LAB-ROOT-CA. Dans `certsrv.msc` > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter**. `certutil -CATemplates` liste les modèles publiés : il doit y apparaître. Attention aussi à utiliser dans `certreq` le **nom du modèle** (onglet Général, sans espace) et pas son nom complet.
+```
+certreq -retrieve 5 C:\PKI\vcenter\vcenter.cer
+```
 
-### 1.8 Importer et remplacer
+Remplace `5` par ton identifiant. Choisis **LAB-ROOT-CA** si on te le demande. Copie `vcenter.cer` sur le PC d'où tu ouvres le vSphere Client, à côté de `lab-root-ca.cer`.
 
-**Gestion des certificats** > **Certificat SSL de la machine** > **Actions > Importer et remplacer le certificat** > **Remplacer par un certificat externe (via CSR)** :
+> Le fichier obtenu est au format Base 64 (il commence par `-----BEGIN CERTIFICATE-----`), celui qu'attend le vCenter.
+
+#### Étape 8 : importer et remplacer
+
+1. **Gestion des certificats** > onglet **SSL de machine** > **Importer et remplacer un certificat**.
+2. Choisis **Remplacer par un certificat externe (via CSR)** (le vCenter a gardé la clé privée de l'étape 3).
+3. Renseigne :
 
 | Champ | Fichier |
 |---|---|
 | Certificat SSL de la machine | `vcenter.cer` |
 | Chaîne de certificats | `lab-root-ca.cer` |
 
-**Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué.
+4. **Remplacer**. Les services du vCenter redémarrent : compte **10 à 15 minutes** en imbriqué. La page devient indisponible pendant ce temps, c'est normal.
 
-### 1.9 Contrôler
+#### Étape 9 : contrôler
 
-1. Depuis la VM Horizon ou un poste du domaine, ouvre `https://192.168.50.12/ui` : **cadenas**, certificat **délivré par LAB-ROOT-CA**, aucune alerte.
-2. Depuis ton PC (hors domaine) : l'alerte disparaît une fois LAB-ROOT-CA importé dans ses **Autorités de certification racines de confiance** (page 10, partie 7).
-3. L'ESXi reste « Connecté » dans l'inventaire.
-4. Tout fonctionne ? **Supprime le snapshot** du vCenter.
+1. Ferme le navigateur et rouvre `https://192.168.50.12/ui` depuis la VM Horizon ou une machine du domaine : **cadenas**, certificat **délivré par LAB-ROOT-CA**, aucune alerte.
+2. **Gestion des certificats > SSL de machine** : *Émetteur* = **LAB-ROOT-CA**, état **Valide**, fin de validité dans un an.
+3. L'hôte **192.168.50.11** est toujours **Connecté** dans l'inventaire.
+4. Depuis ton PC (hors domaine) : l'alerte disparaît une fois LAB-ROOT-CA importé dans ses **Autorités de certification racines de confiance** (page 10, partie 7).
+5. Tout fonctionne ? **Supprime le snapshot** du vCenter.
 
-> **Retour arrière :** si le vCenter ne revient pas, rétablis le snapshot. Le compte `administrator@vsphere.local` reste disponible tout du long.
+#### Étape 10 : faire le ménage
 
-> 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais 1.6 à 1.8 un mois avant. Note la date à côté de celle de DC01.
+Les demandes ratées et le certificat délivré pour l'ancienne CSR ne servent plus.
+
+1. `certsrv.msc` > **Certificats délivrés** : clic droit sur l'**ancien** certificat du vCenter (celui sans `localhost`) > **Toutes les tâches > Révoquer le certificat** > motif **Remplacé**.
+2. Les demandes de **Demandes ayant échoué** peuvent rester : elles servent d'historique.
+3. Note la date d'expiration du nouveau certificat à côté de celles de DC01 et d'Horizon.
+
+> 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais les étapes 2 à 9 un mois avant.
+
+> **Retour arrière :** si le vCenter ne revient pas après l'étape 8, rétablis le snapshot. Le compte `administrator@vsphere.local` reste disponible tout du long.
+
+### 1.6 Les pièges rencontrés
+
+| Message | Cause | Solution |
+|---|---|---|
+| *« Les autorisations sur le modèle de certificat n'autorisent pas l'utilisateur actuel à s'inscrire… 0x80094012 (CERTSRV_E_TEMPLATE_DENIED) »* | Console **non élevée** : l'UAC désactive le groupe *Admins du domaine* dans le jeton, donc le droit *Inscrire* ne s'applique pas | **Exécuter en tant qu'administrateur**, puis soumettre à nouveau la même CSR. Sinon, vérifier l'onglet **Sécurité** du modèle et redémarrer le service `certsvc` |
+| *« Le modèle de certificat demandé n'est pas pris en charge par cette autorité de certification… 0x80094800 (CERTSRV_E_UNSUPPORTED_CERT_TYPE) »* | Modèle **non publié** sur LAB-ROOT-CA, ou mauvais nom dans `certreq` | Publier le modèle (1.4), vérifier avec `certutil -CATemplates`, utiliser le **nom du modèle** (onglet Général) |
+| *« Replace cert Failed: … DNS in Subject Alternative Name is not correct. DNS Name must contain machine FQDN. »* | Le nom d'hôte système `localhost` manquait dans les noms alternatifs | Nouvelle CSR avec `localhost` (étape 3), contrôle avec `certutil -dump` (étape 4). L'ancien certificat reste en place et valide en attendant |
 
 ---
 
@@ -268,7 +336,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 |---|---|
 | ☐ | Modèle `LAB-vCenter` avec approbation, publié |
 | ☐ | LAB-ROOT-CA dans les racines approuvées du vCenter |
-| ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, IP 192.168.50.12 dans les noms alternatifs |
+| ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, avec 192.168.50.12 et `localhost` dans les noms alternatifs |
 | ☐ | Snapshot du vCenter supprimé après validation |
 | ☐ | SSO : verrouillage 5 tentatives, compte `administrator@vsphere.local` dans le coffre |
 | ☐ | VAMI : SSH coupé, NTP DC01, sauvegarde planifiée |
@@ -285,7 +353,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 
 <details><summary><b>1. Pourquoi le modèle LAB-vCenter utilise-t-il « Fournir dans la demande », et comment évite-t-on ESC1 ?</b></summary> <p>Le vCenter n'est pas dans l'AD : son nom doit venir de sa CSR. On neutralise ESC1 par l'approbation obligatoire du gestionnaire de la CA et par un droit d'inscription réservé aux Admins du domaine.</p></details>
 
-<details><summary><b>2. Pourquoi l'IP 192.168.50.12 doit-elle figurer dans le certificat du vCenter ?</b></summary> <p>C'est son PNID. Le vCenter refuse un certificat qui ne contient pas son PNID, et Horizon s'y connecte par cette IP.</p></details>
+<details><summary><b>2. Pourquoi le certificat du vCenter doit-il contenir à la fois 192.168.50.12 et localhost ?</b></summary> <p>192.168.50.12 est son PNID, l'adresse par laquelle le navigateur et Horizon s'y connectent. localhost est son nom d'hôte système. Le vCenter refuse un certificat qui ne contient pas les deux.</p></details>
 
 <details><summary><b>3. Pourquoi le mode hybride plutôt qu'une VMCA subordonnée ?</b></summary> <p>On ne remplace que le certificat visible par les utilisateurs. Une VMCA subordonnée pourrait émettre des certificats reconnus par tout le domaine : c'est trop de pouvoir pour une appliance.</p></details>
 
