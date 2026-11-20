@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T12:02:59.576Z
+date: 2026-11-20T12:07:24.361Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
