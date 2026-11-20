@@ -2,7 +2,7 @@
 title: 00 - Cours VDI : sommaire
 description: Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon, de la théorie à la production, avec un lab
 published: 1
-date: 2026-11-18T13:07:15.474Z
+date: 2026-11-20T09:46:43.940Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:44:14.247Z
@@ -26,7 +26,7 @@ dateCreated: 2026-11-11T13:44:14.247Z
 | 04 | [L'Active Directory du lab](/fr/hyperviseur/VDI/04-active-directory) | DNS et zone inverse, DHCP, OU, comptes par tier, groupes, délégation sur OU=Postes |
 | 05 | [La PKI : LAB-ROOT-CA](/fr/hyperviseur/VDI/05-pki) | Autorité de certification sur DC01, CAPolicy.inf, CDP et AIA, modèle des DC, inscription automatique, attaques ESC1, ESC6 et ESC8 |
 | 06 | [vCenter en LDAPS](/fr/hyperviseur/VDI/06-vcenter-ldaps) | Source d'identité AD en LDAPS, épinglage du certificat, autorisations globales, pourquoi l'ESXi n'est pas joint au domaine |
-| 07 | [Sécuriser le vCenter et l'AD](/fr/hyperviseur/VDI/07-securiser-vcenter-ad) | Certificat LAB-ROOT-CA pour le vCenter, SSO, VAMI, mode de verrouillage de l'ESXi, signature LDAP, TLS, Protected Users, LAPS |
+| 07 | [Sécuriser le vCenter et l'AD](/fr/hyperviseur/VDI/httpsvcenter) | Certificat LAB-ROOT-CA pour le vCenter, SSO, VAMI, mode de verrouillage de l'ESXi, signature LDAP, TLS, Protected Users, LAPS |
 | 08 | [Préparer l'infrastructure pour Horizon](/fr/hyperviseur/VDI/08-preparation-horizon) | Serveur Horizon, modèle LAB-HorizonServer, dossiers VDI, pas de vTPM, rôle vCenter Horizon-InstantClone |
 | 09 | [La golden image Windows 11](/fr/hyperviseur/VDI/09-golden-image) | VM sans vTPM, contournement LabConfig, compte local, VMware Tools, Horizon Agent, OSOT, snapshot |
 | 10 | [Installer Horizon](/fr/hyperviseur/VDI/10-installation-horizon) | Connection Server, certificat `vdm`, licence, ajout du vCenter, compte de jonction, réglages de sécurité |
