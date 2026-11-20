@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T10:55:39.170Z
+date: 2026-11-20T11:02:05.809Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -91,41 +91,41 @@ Les onglets, tels qu'ils sont réglés dans le lab :
 
 **Général :** `LAB-vCenter` en nom complet et en nom du modèle, 1 an, 6 semaines, pas de publication dans l'AD.
 
-![LAB-vCenter - onglet Général](/vdi/07-securiser-vcenter-ad/01-modele-general.png)
+![LAB-vCenter - onglet Général](/vdi/01-modele-general.png)
 
 **Traitement de la demande :** ☐ *Autoriser l'exportation de la clé privée*.
 
-![LAB-vCenter - onglet Traitement de la demande](/vdi/07-securiser-vcenter-ad/02-modele-traitement-demande.png)
+![LAB-vCenter - onglet Traitement de la demande](/vdi/02-modele-traitement-demande.png)
 
 **Chiffrement :** fournisseur de stockage de clés, RSA 2048, SHA256.
 
-![LAB-vCenter - onglet Chiffrement](/vdi/07-securiser-vcenter-ad/03-modele-chiffrement.png)
+![LAB-vCenter - onglet Chiffrement](/vdi/03-modele-chiffrement.png)
 
 **Nom du sujet :** ● **Fournir dans la demande**.
 
-![LAB-vCenter - onglet Nom du sujet](/vdi/07-securiser-vcenter-ad/04-modele-nom-du-sujet.png)
+![LAB-vCenter - onglet Nom du sujet](/vdi/04-modele-nom-du-sujet.png)
 
 **Conditions d'émission :** ☑ **Approbation du gestionnaire de certificat de l'autorité de certification**. C'est le verrou principal contre ESC1.
 
-![LAB-vCenter - onglet Conditions d'émission](/vdi/07-securiser-vcenter-ad/05-modele-conditions-emission.png)
+![LAB-vCenter - onglet Conditions d'émission](/vdi/05-modele-conditions-emission.png)
 
 **Extensions :** *Stratégies d'application* = **Authentification du serveur** seulement.
 
-![LAB-vCenter - onglet Extensions](/vdi/07-securiser-vcenter-ad/06-modele-extensions.png)
+![LAB-vCenter - onglet Extensions](/vdi/06-modele-extensions.png)
 
 **Sécurité :** les *Utilisateurs authentifiés* n'ont que la **Lecture** : ils ne peuvent pas demander ce certificat. Seuls *Admins du domaine* et *Administrateurs de l'entreprise* ont *Inscrire*.
 
-![LAB-vCenter - onglet Sécurité](/vdi/07-securiser-vcenter-ad/07-modele-securite.png)
+![LAB-vCenter - onglet Sécurité](/vdi/07-modele-securite.png)
 
 > **Onglet Compatibilité :** vérifie qu'il est bien sur **Windows Server 2016** / **Windows 10 – Windows Server 2016**, et pas sur les valeurs par défaut (Windows Server 2003 / Windows XP). Le fournisseur de stockage de clés n'est proposé qu'avec une compatibilité récente.
 
 **Publier le modèle.** `certsrv.msc` > **LAB-ROOT-CA** > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter** > **OK**.
 
-![certsrv - activer le modèle LAB-vCenter](/vdi/07-securiser-vcenter-ad/08-certsrv-activer-modele.png)
+![certsrv - activer le modèle LAB-vCenter](/vdi/08-certsrv-activer-modele.png)
 
 La CA délivre maintenant trois modèles, un par usage :
 
-![certsrv - les trois modèles publiés](/vdi/07-securiser-vcenter-ad/09-certsrv-modeles-publies.png)
+![certsrv - les trois modèles publiés](/vdi/09-certsrv-modeles-publies.png)
 
 > **Ménage :** si un essai précédent a laissé un autre modèle (par exemple `LAB-vCenterServer`), clic droit > **Supprimer** dans `certsrv.msc` ne fait que le **dépublier**. Pour le supprimer vraiment, fais aussi clic droit > **Supprimer** dans `certtmpl.msc`.
 
@@ -156,7 +156,7 @@ La CA délivre maintenant trois modèles, un par usage :
    - si **LAB-ROOT-CA** est déjà dans la liste, passe à l'étape 3 ;
    - sinon, **Ajouter un certificat racine approuvé** > `lab-root-ca.cer` > **Ajouter**.
 
-![vCenter - LAB-ROOT-CA dans les racines de confiance](/vdi/07-securiser-vcenter-ad/10-vcenter-racine-confiance.png)
+![vCenter - LAB-ROOT-CA dans les racines de confiance](/vdi/10-vcenter-racine-confiance.png)
 
 > Sans la racine dans le vCenter, il refuserait le futur certificat, faute de pouvoir vérifier sa chaîne. Les deux lignes **CA** sont la VMCA elle-même : on n'y touche pas.
 
