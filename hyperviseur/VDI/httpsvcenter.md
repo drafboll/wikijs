@@ -2,7 +2,7 @@
 title: 07 - Sécuriser le vCenter et l'Active Directory
 description: 
 published: 1
-date: 2026-11-20T10:03:54.330Z
+date: 2026-11-20T10:08:14.616Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:48:57.656Z
@@ -51,7 +51,7 @@ Le PNID du vCenter est son IP (page 03). Le certificat doit donc contenir, dans 
 
 > Si le PNID n'est pas dans le certificat, le vCenter refuse le remplacement.
 
-### 1.4 Le modèle LAB-vCenterServer
+### 1.4 Le modèle LAB-vCenter
 
 Ici, le nom vient **de la demande** générée par le vCenter (une CSR), puisque le vCenter n'est pas dans l'AD. C'est exactement la situation de l'attaque **ESC1**. On la neutralise par trois verrous :
 
@@ -66,7 +66,7 @@ Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modè
 | Onglet | Réglage |
 |---|---|
 | **Compatibilité** | Windows Server 2016 / Windows 10 – Windows Server 2016 |
-| **Général** | Nom `LAB-vCenterServer` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
+| **Général** | Nom `LAB-vCenter` · validité **1 an** · renouvellement 6 semaines · ☐ Publier dans AD |
 | **Traitement de la demande** | ☐ Autoriser l'exportation de la clé privée (la clé est générée **dans le vCenter** et n'en sort pas) |
 | **Chiffrement** | Fournisseur de stockage de clés, RSA, **2048** minimum |
 | **Nom du sujet** | ● **Fournir dans la demande** (l'avertissement sur la sécurité est normal : les deux verrous suivants y répondent) |
@@ -74,7 +74,7 @@ Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modè
 | **Extensions > Stratégies d'application** | Seulement **Authentification du serveur** |
 | **Sécurité** | **Admins du domaine** : Lecture + Inscrire · **Utilisateurs authentifiés** : Lecture seulement · supprime tout autre droit *Inscrire* |
 
-**OK**, puis `certsrv.msc` > **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenterServer**.
+**OK**, puis `certsrv.msc` > **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter**.
 
 ### 1.5 Préparer le vCenter
 
@@ -105,7 +105,7 @@ Sur DC01, `certtmpl.msc` > clic droit sur **Serveur Web** > **Dupliquer le modè
 Sur DC01, en **adm-dom-afaye**, invite de commandes administrateur :
 
 ```
-certreq -submit -attrib "CertificateTemplate:LAB-vCenterServer" C:\Temp\vcenter.csr
+certreq -submit -attrib "CertificateTemplate:LAB-vCenter" C:\Temp\vcenter.csr
 ```
 
 Choisis **LAB-ROOT-CA**. La réponse est *« Le certificat demandé est en attente »*, avec un **numéro de requête** (RequestId).
@@ -121,6 +121,8 @@ certreq -retrieve <RequestId> C:\Temp\vcenter.cer
 > 🔒 **C'est ici que joue l'approbation :** une demande au nom de `dc01.lab.lan` ou d'un administrateur ne passerait jamais cette étape.
 
 > **Piège rencontré :** *« Les autorisations sur le modèle de certificat n'autorisent pas l'utilisateur actuel à s'inscrire… 0x80094012 (CERTSRV_E_TEMPLATE_DENIED) »*, alors qu'on est connecté en `adm-dom-afaye`. Sur un serveur, une console **non élevée** reçoit un jeton filtré par l'UAC : le groupe *Admins du domaine* y est désactivé, donc le droit *Inscrire* du modèle ne s'applique pas. Relance l'invite de commandes avec **Exécuter en tant qu'administrateur** et soumets à nouveau la même CSR. Si l'erreur persiste, vérifie l'onglet **Sécurité** du modèle (*Admins du domaine* : Lecture + Inscrire), puis redémarre le service **Services de certificats Active Directory** pour qu'il relise le modèle.
+
+> **Piège rencontré (suite) :** *« Le modèle de certificat demandé n'est pas pris en charge par cette autorité de certification… 0x80094800 (CERTSRV_E_UNSUPPORTED_CERT_TYPE) »*. Le modèle existe dans l'AD mais **n'est pas publié** sur LAB-ROOT-CA. Dans `certsrv.msc` > clic droit sur **Modèles de certificats** > **Nouveau > Modèle de certificat à délivrer** > **LAB-vCenter**. `certutil -CATemplates` liste les modèles publiés : il doit y apparaître. Attention aussi à utiliser dans `certreq` le **nom du modèle** (onglet Général, sans espace) et pas son nom complet.
 
 ### 1.8 Importer et remplacer
 
@@ -264,7 +266,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 
 | ✓ | Vérification |
 |---|---|
-| ☐ | Modèle `LAB-vCenterServer` avec approbation, publié |
+| ☐ | Modèle `LAB-vCenter` avec approbation, publié |
 | ☐ | LAB-ROOT-CA dans les racines approuvées du vCenter |
 | ☐ | Certificat SSL du vCenter délivré par LAB-ROOT-CA, IP 192.168.50.12 dans les noms alternatifs |
 | ☐ | Snapshot du vCenter supprimé après validation |
@@ -281,7 +283,7 @@ Le mot de passe de l'**administrateur local** des serveurs membres doit être un
 
 ## 5. Quiz
 
-<details><summary><b>1. Pourquoi le modèle LAB-vCenterServer utilise-t-il « Fournir dans la demande », et comment évite-t-on ESC1 ?</b></summary> <p>Le vCenter n'est pas dans l'AD : son nom doit venir de sa CSR. On neutralise ESC1 par l'approbation obligatoire du gestionnaire de la CA et par un droit d'inscription réservé aux Admins du domaine.</p></details>
+<details><summary><b>1. Pourquoi le modèle LAB-vCenter utilise-t-il « Fournir dans la demande », et comment évite-t-on ESC1 ?</b></summary> <p>Le vCenter n'est pas dans l'AD : son nom doit venir de sa CSR. On neutralise ESC1 par l'approbation obligatoire du gestionnaire de la CA et par un droit d'inscription réservé aux Admins du domaine.</p></details>
 
 <details><summary><b>2. Pourquoi l'IP 192.168.50.12 doit-elle figurer dans le certificat du vCenter ?</b></summary> <p>C'est son PNID. Le vCenter refuse un certificat qui ne contient pas son PNID, et Horizon s'y connecte par cette IP.</p></details>
 
