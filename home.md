@@ -2,7 +2,7 @@
 title: Accueil
 description: 
 published: 1
-date: 2026-11-22T19:06:57.303Z
+date: 2026-11-22T19:07:55.464Z
 tags: accueil, alexandre, page d'accueil, tuto
 editor: markdown
 dateCreated: 2023-01-29T15:33:30.787Z
