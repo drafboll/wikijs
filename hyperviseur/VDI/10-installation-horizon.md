@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-22T19:31:15.552Z
+date: 2026-11-22T19:39:18.519Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -279,10 +279,19 @@ Sans licence, une bannière rouge s'affiche en haut de la console : *« Aucune l
 
 ### 5.4 Les administrateurs en lecture seule
 
-1. **Paramètres > Administrateurs** > onglet **Utilisateurs et groupes administrateurs** > **Ajouter un utilisateur ou un groupe**.
-2. **Ajouter** > `GG-HZN-ReadOnly` > **OK**.
-3. Rôle **Administrateurs (lecture seule)**, groupe d'accès **/ (Racine)** > **Terminer**.
-4. **Contrôle :** `GG-HZN-Admins` (Administrateurs) et `GG-HZN-ReadOnly` (lecture seule).
+1. **Paramètres > Administrateurs** > onglet **Administrateurs et groupes** > **Ajouter**.
+2. **Rechercher un utilisateur ou un groupe** : ☑ **Groupes**, domaine **lab.lan**, nom *Commence par* `GG-HZN-ReadOnly` > **Rechercher**. Coche le groupe trouvé > **OK** > **Suivant**.
+
+   ![Rechercher le groupe GG-HZN-ReadOnly](/vdi/10-22-admin-rechercher-groupe.png)
+
+3. **Sélectionner un rôle** : ● **Administrateurs (lecture seule)** > **Suivant**.
+
+   ![Le rôle Administrateurs (lecture seule)](/vdi/10-23-admin-role-lecture-seule.png)
+
+4. **Sélectionner les groupes d'accès** : **/ (Root)** > **Terminer**.
+5. **Contrôle :** dans **Vue générale des administrateurs**, deux groupes : `lab.lan\GG-HZN-Admins` (Administrateurs) et `lab.lan\GG-HZN-ReadOnly`, avec **Administrateurs (lecture seule)** sur **Root(/)**.
+
+   ![Vue générale : GG-HZN-Admins et GG-HZN-ReadOnly](/vdi/10-24-admin-vue-generale.png)
 
 ### 5.5 Les paramètres globaux
 
