@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-22T19:39:18.519Z
+date: 2026-11-22T19:46:10.809Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -312,14 +312,19 @@ Horizon affiche un avertissement tant qu'aucune **base d'événements** (SQL Ser
 
 ## 6. Contrôle de santé
 
-**Surveiller > Tableau de bord > État du système** :
+**Surveiller > Tableau de bord** > cadre **Intégrité du système** > **Afficher** pour le détail :
 
 | Composant | Attendu |
 |---|---|
-| Connection Server | Vert |
+| Serveurs de connexion | Vert |
 | vCenter Server | Vert |
 | Domaines | `lab.lan` vert |
-| Base d'événements | Avertissement (normal) |
+| Base de données des événements | **1 problème** : *Aucune base de données des événements configurée* (normal, 5.6) |
+| Service de licence | **1 problème** tant que la licence n'est pas saisie (5.1) |
+
+![Intégrité du système : les deux problèmes attendus avant la licence](/vdi/10-25-integrite-systeme.png)
+
+> ℹ️ **Le cadre « Charge de travail »** affiche l'espace utilisé sur la banque de données de l'ESXi. Garde-le sous **80 %** : chaque bureau en clone instantané ajoute un disque delta, et une banque de données pleine bloque la création des bureaux (page 11).
 
 Tout est vert ? **Supprime le snapshot** de la VM Horizon.
 
