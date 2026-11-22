@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-19T21:28:14.265Z
+date: 2026-11-22T17:49:07.068Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -12,7 +12,7 @@ dateCreated: 2026-11-18T13:24:32.958Z
 
 > **Objectif de la page :** installer **Omnissa Horizon Connection Server** sur `horizon.lab.lan`, lui donner un certificat LAB-ROOT-CA, puis le relier à l'AD et au vCenter. À la fin, la console Horizon est prête à créer le premier pool (page 11).
 >
-> 📸 *Page à illustrer avec tes captures au moment où tu la réalises.*
+> 📸 *Captures : installation (partie 3) et demande de licence (5.1). Le reste est à illustrer au fur et à mesure.*
 
 ---
 
@@ -38,12 +38,34 @@ Le Connection Server est le **cœur** d'Horizon. Une fois installé, on lui donn
 |---|---|---|
 | ☐ | VM Horizon à jour, IP fixe .13, DNS .10, dans OU=Serveurs, A et PTR OK | 08 |
 | ☐ | Session ouverte en **LAB\adm-hzn-afaye**, administrateur local via `GG-HZN-Admins` | 08 |
-| ☐ | Modèle LAB-HorizonServer publié, VM **redémarrée** depuis | 08 |
-| ☐ | Installeur Connection Server copié, **snapshot** de la VM pris | 08 |
-| ☐ | Une clé de licence Horizon (évaluation) | — |
+| ☐ | Modèle **LAB-HorizonServer** créé et publié, VM Horizon **redémarrée** depuis : [page 08, partie 3](/fr/hyperviseur/VDI/08-preparation-horizon) (3.1 créer le modèle, 3.2 le publier) | 08 |
+| ☐ | Installeur Connection Server copié, **même version que l'Agent** de la golden image | 08, 09 |
+| ☐ | Licence d'évaluation **demandée** à Omnissa (partie 5.1). Compte quelques jours : tout le reste de la page se fait sans elle | 5.1 |
 | ☐ | Mot de passe de `svc-horizon-vc` et de `svc-horizon-ic` à portée (coffre) | 04 |
 
-> Garde **la même version** pour le Connection Server et l'Agent de la golden image.
+> ⚠️ **La même version partout.** Le Connection Server et l'Agent de la golden image doivent avoir **la même version** (par exemple 2609 et 2609). Regarde le nom des deux installeurs avant de commencer. Si tu as déjà installé une autre version du Connection Server, relance l'installeur de la bonne version : il fait la mise à niveau sur place.
+
+### 2.1 Vérifier le serveur
+
+Sur la VM Horizon, en session `LAB\adm-hzn-afaye`, ouvre PowerShell avec un **clic droit > Exécuter en tant qu'administrateur**. Si Windows demande un mot de passe au lieu d'un simple **Oui**, `GG-HZN-Admins` n'est pas administrateur local : reviens à la page 08, partie 2.3.
+
+| Ce qu'on vérifie | Commande | Attendu |
+|---|---|---|
+| Le compte et ses droits | `whoami /groups \| findstr /i "GG-HZN-Admins"` puis `Get-LocalGroupMember -SID S-1-5-32-544` | `LAB\GG-HZN-Admins` dans les deux |
+| La relation avec le domaine | `Test-ComputerSecureChannel` | `True` |
+| L'OU | `([adsisearcher]"(&(objectClass=computer)(name=$env:COMPUTERNAME))").FindOne().Path` | contient `OU=Serveurs` |
+| L'IP | `Get-NetIPConfiguration` | IP **.13**, passerelle **.2**, DNS **.10** seulement |
+| Le DNS | `nslookup horizon.lab.lan` puis `nslookup 192.168.50.13` | les deux répondent (A et PTR) |
+| L'heure | `w32tm /stripchart /computer:dc01.lab.lan /samples:3 /dataonly` | écart de moins d'une seconde |
+| Les flux | `Test-NetConnection 192.168.50.12 -Port 443`, puis vers `dc01.lab.lan` les ports **389** et **88** | `TcpTestSucceeded : True` |
+| La racine de confiance | `Get-ChildItem Cert:\LocalMachine\Root \| Where-Object Subject -like "*LAB-ROOT-CA*"` | LAB-ROOT-CA présente |
+| Le modèle publié | `certutil -CATemplates -config "DC01.lab.lan\LAB-ROOT-CA" \| findstr /i "LAB-HorizonServer"` | la ligne apparaît, avec **Accès refusé** |
+| Redémarrage en attente | `Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'` | `False` |
+| L'installeur | `Get-AuthenticodeSignature <chemin du .exe>` | `Valid`, signé par **Omnissa** |
+
+> 🔒 **« Accès refusé » sur le modèle, c'est bon signe.** `certutil` teste les droits de l'utilisateur connecté. Seul le compte ordinateur **HORIZON$** a le droit *Inscrire* sur LAB-HorizonServer : un administrateur ne peut pas obtenir ce certificat à la place du serveur. Le vrai test se fait en 4.1, au nom de la machine.
+
+Tout est bon ? **Éteins la VM** et prends un **snapshot** `avant-connection-server`.
 
 ---
 
@@ -51,27 +73,47 @@ Le Connection Server est le **cœur** d'Horizon. Une fois installé, on lui donn
 
 Clic droit sur `Omnissa-Horizon-Connection-Server-x86_64-….exe` > **Exécuter en tant qu'administrateur** :
 
+L'assistant s'affiche dans la langue de Windows :
+
 | Écran | Choix |
 |---|---|
-| Welcome | **Next** |
-| License Agreement | **I accept** > **Next** |
-| Destination Folder | Par défaut > **Next** |
-| **Installation Options** | **Horizon Standard Server** · ☑ **Install HTML Access** · IP : **IPv4** > **Next** |
-| **Data Recovery** | Un **mot de passe de récupération** et un indice. Il sert à restaurer la configuration Horizon : **range-le dans ton coffre** |
-| **Firewall Configuration** | ● **Configure Windows Firewall automatically** |
-| **Initial Horizon Administrators** | ● **Authorize a specific domain user or domain group** > `LAB\GG-HZN-Admins` |
-| User Experience Improvement Program | **Décoche** la participation |
-| **Deployment type** | **General** |
-| Ready to Install | **Install** |
+| Bienvenue | **Suivant** |
+| Contrat de licence | **J'accepte** > **Suivant** |
+| Dossier de destination | Par défaut > **Suivant** |
+| **Options d'installation** | **Serveur standard Horizon** · ☑ **Installer Web Client** · protocole **IPv4** > **Suivant** |
+| **Récupération de données** | Un **mot de passe de récupération**, deux fois. Il sert à restaurer la configuration Horizon : **range-le dans ton coffre**. Laisse le rappel vide : il serait lisible par d'autres administrateurs |
+| **Configuration du pare-feu** | ● **Configurer automatiquement le pare-feu Windows** |
+| **Instances initiales d'Horizon Administrator** | ● **Autoriser un utilisateur ou un groupe de domaine spécifique** > `LAB\GG-HZN-Admins` |
+| Programme d'amélioration de l'expérience client | **Décoche** la participation |
+| Prêt à installer | **Installer** (5 à 10 minutes) |
 
-**Finish**. Pas de redémarrage nécessaire.
+![Options d'installation : serveur standard, Web Client, IPv4](/vdi/10-01-cs-options-installation.png)
+
+![Le mot de passe de récupération de données](/vdi/10-02-cs-recuperation-donnees.png)
+
+![Le pare-feu Windows configuré automatiquement](/vdi/10-03-cs-pare-feu.png)
+
+![Les administrateurs initiaux : le groupe LAB\GG-HZN-Admins](/vdi/10-04-cs-administrateurs-initiaux.png)
 
 > 🔒 **Pourquoi un groupe ?** Par défaut, Horizon donne la console à tous les administrateurs locaux du serveur. Avec `GG-HZN-Admins`, l'accès se gère dans l'AD.
 
+L'écran **Fin du programme d'installation** indique la **version du produit** en bas à gauche : vérifie qu'elle est la même que celle de l'Agent. **Terminer**. Pas de redémarrage nécessaire.
+
+![Fin de l'installation : version du produit et avertissement mémoire](/vdi/10-05-cs-fin-installation.png)
+
+> ℹ️ **« Mémoire limitée disponible » :** Horizon recommande 10 Go de RAM pour un serveur de production. Avec moins (5 Go dans le lab), il se configure pour consommer moins de ressources. C'est **normal et suffisant** pour quelques bureaux.
+
 **Contrôle :**
 
-1. `services.msc` : **Omnissa Horizon Connection Server** est **En cours d'exécution**, démarrage **Automatique**.
-2. Sur la VM, `https://horizon.lab.lan/admin` : la page s'ouvre, avec une **alerte de certificat**. C'est normal à ce stade.
+1. `services.msc` : **Omnissa Horizon Connection Server** est **En cours d'exécution**, démarrage **Automatique**. Les services *Blast Secure Gateway*, *Framework Manager* et *Passerelle sécurisée* tournent aussi.
+
+   ![Les services Omnissa Horizon après l'installation](/vdi/10-06-services-connection-server.png)
+
+2. **Sur la VM Horizon**, icône **Horizon Administrator** du bureau, ou `https://horizon.lab.lan/admin` : la page de connexion s'ouvre, avec une **alerte de certificat**. C'est normal à ce stade.
+
+> ⚠️ **Ouvre la console par son nom, jamais par son IP.** Avec `https://192.168.50.13/admin`, la page affiche **« Échec du chargement de la page »** : Horizon refuse les connexions à la console qui n'arrivent pas par son nom. Depuis ton PC, il faut d'abord qu'il résolve `horizon.lab.lan` (partie 7).
+>
+> ![La console ouverte par l'IP : échec du chargement](/vdi/10-07-console-echec-par-ip.png)
 
 ---
 
@@ -85,7 +127,7 @@ Horizon utilise le certificat dont le **nom convivial** est exactement **`vdm`**
 2. **Suivant** > **Stratégie d'inscription Active Directory** > **Suivant**.
 3. ☑ **LAB-HorizonServer** > **Inscription** > **Terminer**.
 
-> **Le modèle n'apparaît pas ?** Coche **Afficher tous les modèles** : la raison s'affiche. Le plus souvent, c'est le droit *Inscrire* de HORIZON$ ou la VM non redémarrée (page 08, partie 3).
+> **Le modèle n'apparaît pas ?** Coche **Afficher tous les modèles** : la raison s'affiche. Le plus souvent, c'est le droit *Inscrire* de HORIZON$ ou la VM non redémarrée : revois l'onglet **Sécurité** du modèle en [page 08, partie 3.1](/fr/hyperviseur/VDI/08-preparation-horizon).
 
 ### 4.2 Les noms conviviaux
 
@@ -112,13 +154,52 @@ Ferme et rouvre le navigateur > `https://horizon.lab.lan/admin` : **cadenas**, c
 
 ## 5. Configurer Horizon dans la console
 
-`https://horizon.lab.lan/admin`, connecté en **adm-hzn-afaye**, domaine **LAB**.
+`https://horizon.lab.lan/admin`, connecté en **adm-hzn-afaye**, domaine **LAB**. Tant que la partie 7 n'est pas faite, ouvre-la **depuis la VM Horizon**.
 
 ### 5.1 La licence
 
+Sans licence, la console fonctionne et tout le reste de la partie 5 se configure. Seuls les bureaux ne démarrent pas : la licence est indispensable pour le premier pool (page 11). Une alerte « licence » s'affiche en haut de la console en attendant.
+
+#### Demander une licence d'évaluation
+
+Omnissa ne propose **pas de clé en libre-service** : il faut la demander.
+
+1. Ouvre le forum de la communauté Omnissa : **https://community.omnissa.com/forums/** et connecte-toi avec ton compte Omnissa (celui qui sert aux téléchargements).
+2. Va dans la section **Horizon 8** > **Trial Licenses** > **Start new topic**.
+3. Un titre clair, par exemple *Horizon 8 evaluation license request - personal training lab*, et un message en anglais qui décrit le lab :
+
+   ```
+   Hello,
+
+   I am building a personal training lab to learn Omnissa Horizon 8 and
+   document it for a technical course (non-production use).
+
+   Lab details:
+   - Horizon 8 version 2609, 1 Connection Server
+   - vSphere 8.0.3 (vCenter + 1 nested ESXi host)
+   - Instant clone pool, Windows 11 desktops
+   - Expected size: 2 to 5 concurrent desktops
+
+   Could you please provide a 60-day evaluation license key for Horizon 8?
+
+   Thank you
+   ```
+
+4. **Submit**. Le sujet attend la validation d'un **modérateur** : c'est normal pour un nouveau compte.
+
+   ![La demande publiée dans Trial Licenses, en attente de modération](/vdi/10-08-forum-demande-licence.png)
+
+5. La réponse arrive en général par **message privé** sur le forum : surveille la cloche des notifications et ta boîte mail. Compte **quelques jours ouvrés** avant de relancer.
+
+> **Autre voie :** le formulaire de contact d'Omnissa, **https://www.omnissa.com/contact**, c'est celui qu'indique le guide d'évaluation officiel. Colle le même texte dans le message.
+>
+> 🔒 **Méfie-toi des « clés gratuites » trouvées sur le web.** Ce sont des clés volées ou fausses, souvent accompagnées d'un téléchargement piégé (lien camouflé, fichier sur un Drive anonyme). N'installe jamais un Horizon qui ne vient pas du portail Omnissa, et n'entre jamais une clé qui ne vient pas d'Omnissa.
+
+#### Saisir la licence
+
 1. **Paramètres > Licence et utilisation** > **Modifier la licence**.
 2. Colle la clé > **OK**.
-3. **Contrôle :** date d'expiration et fonctions affichées (*Clone instantané*…).
+3. **Contrôle :** date d'expiration et fonctions affichées (*Clone instantané*…). **Note la date d'expiration** : à la fin de l'évaluation, les bureaux ne démarrent plus.
 
 ### 5.2 Le vCenter
 
@@ -192,7 +273,7 @@ Tout est vert ? **Supprime le snapshot** de la VM Horizon.
 Ton PC doit **résoudre** `horizon.lab.lan` et **faire confiance** à LAB-ROOT-CA.
 
 1. **DNS :** la carte **VMnet8** du PC utilise `192.168.50.10` (page 03). À défaut, ajoute `192.168.50.13  horizon.lab.lan` dans `C:\Windows\System32\drivers\etc\hosts` (Bloc-notes en administrateur).
-2. **Certificat racine :** copie `lab-root-ca.cer` (exporté en page 07, partie 1.5) sur le PC.
+2. **Certificat racine :** copie `lab-root-ca.cer` (exporté dans `C:\PKI\vcenter\` en page 07, partie 1.5, étape 2) sur le PC.
    - Double-clic > **Installer le certificat** > **Ordinateur local** > **Placer tous les certificats dans le magasin suivant** > **Autorités de certification racines de confiance** > **Terminer**.
 3. Ouvre `https://horizon.lab.lan/admin` : plus d'alerte. Le vSphere Client (`https://192.168.50.12/ui`) non plus, si la page 07 est faite.
 
@@ -229,7 +310,9 @@ Le client Horizon et la première connexion à un bureau sont en page 11.
 | Toujours l'ancien certificat | Nom convivial | Un seul certificat `vdm`, puis redémarre le service |
 | Connexion à la console refusée pour adm-hzn-afaye | Pas dans `GG-HZN-Admins`, ou groupe mal saisi à l'installation | **Paramètres > Administrateurs** avec un autre compte admin, ou vérifie le groupe dans l'AD |
 | Avertissement « base d'événements » | Non configurée | Normal (5.6) |
-
+| Console : « Échec du chargement de la page » | Ouverte par l'IP `192.168.50.13` | Ouvre `https://horizon.lab.lan/admin` (partie 7 pour le PC) |
+| Fin d'installation : « mémoire limitée disponible » | Moins de 10 Go de RAM | Normal dans le lab (partie 3) |
+| Les bureaux ne démarrent pas, alerte de licence | Pas de licence, ou évaluation expirée | Partie 5.1 |
 **Journaux :** `C:\ProgramData\Omnissa\VDM\logs` (anciennes versions : `C:\ProgramData\VMware\VDM\logs`).
 
 ---
