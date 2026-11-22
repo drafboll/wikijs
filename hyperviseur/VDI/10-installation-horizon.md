@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-22T18:59:14.196Z
+date: 2026-11-22T19:29:38.085Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -43,7 +43,7 @@ Le Connection Server est le **cœur** d'Horizon. Une fois installé, on lui donn
 | ☐ | Licence d'évaluation **demandée** à Omnissa (partie 5.1). Compte quelques jours : tout le reste de la page se fait sans elle | 5.1 |
 | ☐ | Mot de passe de `svc-horizon-vc` et de `svc-horizon-ic` à portée (coffre) | 04 |
 
-> ⚠️ **La même version partout.** Le Connection Server et l'Agent de la golden image doivent avoir **la même version** (par exemple 2609 et 2609). Regarde le nom des deux installeurs avant de commencer. Si tu as déjà installé une autre version du Connection Server, relance l'installeur de la bonne version : il fait la mise à niveau sur place.
+> ⚠️ **La même version partout.** Le Connection Server et l'Agent de la golden image doivent avoir **la même version**. Dans le lab, c'est la **2412** (8.14.0) pour les deux : `Omnissa-Horizon-Connection-Server-x86_64-2412-…exe` et `Omnissa-Horizon-Agent-x86_64-2412-8.14.0-…exe`. Regarde le nom des deux installeurs avant de commencer. Si tu as déjà installé une autre version du Connection Server, relance l'installeur de la bonne version : il fait la mise à niveau sur place.
 
 ### 2.1 Vérifier le serveur
 
@@ -180,9 +180,15 @@ Ferme et rouvre le navigateur > `https://horizon.lab.lan/admin` : **cadenas**, c
 
 `https://horizon.lab.lan/admin`, connecté en **adm-hzn-afaye**, domaine **LAB**. Tant que la partie 7 n'est pas faite, ouvre-la **depuis la VM Horizon**.
 
+![La page de connexion de la console Horizon](/vdi/10-16-console-connexion.png)
+
 ### 5.1 La licence
 
-Sans licence, la console fonctionne et tout le reste de la partie 5 se configure. Seuls les bureaux ne démarrent pas : la licence est indispensable pour le premier pool (page 11). Une alerte « licence » s'affiche en haut de la console en attendant.
+Sans licence, la **console d'administration** (`/admin`) fonctionne et tout le reste de la partie 5 se configure. Une alerte « licence » s'affiche en haut de la console en attendant.
+
+Côté **utilisateurs**, en revanche, rien ne passe. Le portail `https://horizon.lab.lan` avec **Web Client** (ou Horizon Client) refuse la connexion : *« La clé de licence d'Horizon Connection Server n'est pas valide »*. C'est normal tant que la clé n'est pas saisie. La licence est indispensable pour le premier bureau (page 11).
+
+![Web Client sans licence : la clé n'est pas valide](/vdi/10-15-web-client-licence-invalide.png)
 
 #### Demander une licence d'évaluation
 
@@ -199,7 +205,7 @@ Omnissa ne propose **pas de clé en libre-service** : il faut la demander.
    document it for a technical course (non-production use).
 
    Lab details:
-   - Horizon 8 version 2609, 1 Connection Server
+   - Horizon 8 version 2412 (8.14), 1 Connection Server
    - vSphere 8.0.3 (vCenter + 1 nested ESXi host)
    - Instant clone pool, Windows 11 desktops
    - Expected size: 2 to 5 concurrent desktops
@@ -221,9 +227,14 @@ Omnissa ne propose **pas de clé en libre-service** : il faut la demander.
 
 #### Saisir la licence
 
-1. **Paramètres > Licence et utilisation** > **Modifier la licence**.
-2. Colle la clé > **OK**.
-3. **Contrôle :** date d'expiration et fonctions affichées (*Clone instantané*…). **Note la date d'expiration** : à la fin de l'évaluation, les bureaux ne démarrent plus.
+Sans licence, une bannière rouge s'affiche en haut de la console : *« Aucune licence Horizon trouvée »*.
+
+![Paramètres > Licence produit et utilisation : bouton Activer](/vdi/10-17-licence-activer.png)
+
+1. **Paramètres > Licence produit et utilisation** > onglet **Licence** > **ACTIVER** (menu déroulant).
+2. Choisis l'activation par **clé de licence**, et non par abonnement en ligne : la clé d'évaluation est une clé classique.
+3. Colle la clé > **OK**.
+4. **Contrôle :** date d'expiration et fonctions affichées (*Clone instantané*…). **Note la date d'expiration** : à la fin de l'évaluation, les bureaux ne démarrent plus.
 
 ### 5.2 Le vCenter
 
@@ -234,22 +245,35 @@ Omnissa ne propose **pas de clé en libre-service** : il faut la demander.
 | Adresse du serveur | **`192.168.50.12`** |
 | Nom d'utilisateur | `svc-horizon-vc@lab.lan` |
 | Mot de passe | Celui du compte |
-| Paramètres avancés | Par défaut |
+| Port | **443** (par défaut) |
+| Type de déploiement | **Général** |
+| Paramètres avancés | Par défaut (20 opérations de provisionnement simultanées, etc.) |
+
+![Ajouter un serveur vCenter Server : informations](/vdi/10-18-vcenter-informations.png)
 
 > ⚠️ **L'IP, pas un nom :** c'est le PNID du vCenter, et son certificat est émis pour elle (pages 03 et 07).
 
 2. **Suivant**.
    - Si tu as fait la page 07, le certificat du vCenter est **émis par LAB-ROOT-CA** : aucune alerte.
    - Sinon, la fenêtre **Certificat non valide détecté** s'ouvre (certificat de la VMCA) : **Afficher le certificat**, vérifie que c'est bien le vCenter, **Accepter**.
-3. **Paramètres de stockage** : laisse ☑ **Récupérer l'espace disque de la VM** et ☑ **Activer View Storage Accelerator** (cache 1024 Mo) > **Suivant** > **Envoyer**.
-4. **Contrôle :** **Surveiller > Tableau de bord** : le vCenter est **vert**.
+3. **Stockage** : laisse ☑ **Récupérer l'espace disque de machine virtuelle** et ☑ **Activer View Storage Accelerator** (cache de l'hôte **1024 Mo**). L'hôte `/DC-LAB/host/CL-LAB/192.168.50.11` apparaît avec la valeur par défaut > **Suivant** > **Envoyer**.
+
+   ![Paramètres de stockage](/vdi/10-19-vcenter-stockage.png)
+
+4. **Contrôle :** **Paramètres > Serveurs** > onglet **Instances de vCenter Server** : `192.168.50.12(svc-horizon-vc@lab.lan)` avec des coches vertes partout, y compris **Provisionnement** et **VM parentes d'Instant Clone**. Dans **Surveiller > Tableau de bord**, le vCenter est **vert**.
+
+   ![Le vCenter ajouté, tout est vert](/vdi/10-20-vcenter-ajoute.png)
 
 > **Erreur de privilège ?** Revois le rôle et l'autorisation **sur l'objet vCenter** (page 08, partie 4).
 
 ### 5.3 Le compte de jonction au domaine
 
-1. **Paramètres > Administrateurs de domaine Instant Clone** > **Ajouter**.
-2. Domaine **lab.lan** · utilisateur `svc-horizon-ic` · mot de passe > **OK**.
+1. **Paramètres > Domaines** > onglet **Comptes de domaine** > **Ajouter**. Dans les anciennes versions, ce menu s'appelait *Administrateurs de domaine Instant Clone*.
+2. **Nom de domaine complet** : **lab.lan** · **Nom d'utilisateur** : `svc-horizon-ic` (sans `LAB\` ni `@lab.lan`, le domaine est déjà choisi) · **Mot de passe** > **OK**.
+
+![Paramètres > Domaines > Comptes de domaine : ajouter svc-horizon-ic](/vdi/10-21-compte-domaine-instant-clone.png)
+
+3. **Contrôle :** la ligne `lab.lan` / `svc-horizon-ic` apparaît dans **Comptes de domaine**.
 
 > Ce compte ne peut agir que dans `OU=Postes` (page 04, partie 7). C'est pour ça qu'on peut le confier à Horizon.
 
@@ -337,7 +361,7 @@ Le client Horizon et la première connexion à un bureau sont en page 11.
 | `ERR_CONNECTION_TIMED_OUT` juste après un redémarrage | La passerelle (`wstunnel`) n'a pas fini de démarrer, rien n'écoute encore sur 443 | Attends 3 à 5 minutes, contrôle avec `netstat` (4.3) |
 | Console : « Échec du chargement de la page » | Ouverte par l'IP `192.168.50.13` | Ouvre `https://horizon.lab.lan/admin` (partie 7 pour le PC) |
 | Fin d'installation : « mémoire limitée disponible » | Moins de 10 Go de RAM | Normal dans le lab (partie 3) |
-| Les bureaux ne démarrent pas, alerte de licence | Pas de licence, ou évaluation expirée | Partie 5.1 |
+| Web Client ou Horizon Client : « La clé de licence d'Horizon Connection Server n'est pas valide » | Pas de licence, ou évaluation expirée | Normal avant la 5.1. Pour administrer, utilise `/admin` |
 **Journaux :** `C:\ProgramData\Omnissa\Horizon\logs\debug-….txt` (anciennes versions : `C:\ProgramData\VMware\VDM\logs`).
 
 ---
