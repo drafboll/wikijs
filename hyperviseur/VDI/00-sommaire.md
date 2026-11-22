@@ -2,7 +2,7 @@
 title: 00 - Cours VDI : sommaire
 description: Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon, de la théorie à la production, avec un lab
 published: 1
-date: 2026-11-20T09:46:43.940Z
+date: 2026-11-22T20:19:34.138Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-11T13:44:14.247Z
@@ -13,6 +13,8 @@ dateCreated: 2026-11-11T13:44:14.247Z
 > **Cours complet sur la VDI avec VMware vSphere et Omnissa Horizon 8**, de la théorie à un lab sécurisé comme en entreprise : comptes par tier, PKI interne, LDAPS, moindre privilège.
 >
 > Chaque page décrit ce qui a **réellement été fait** dans le lab, écran par écran, avec les captures, les pièges rencontrés et un quiz.
+
+![Carte du cours](/vdi/00-carte-cours.svg)
 
 ---
 
@@ -26,14 +28,14 @@ dateCreated: 2026-11-11T13:44:14.247Z
 | 04 | [L'Active Directory du lab](/fr/hyperviseur/VDI/04-active-directory) | DNS et zone inverse, DHCP, OU, comptes par tier, groupes, délégation sur OU=Postes |
 | 05 | [La PKI : LAB-ROOT-CA](/fr/hyperviseur/VDI/05-pki) | Autorité de certification sur DC01, CAPolicy.inf, CDP et AIA, modèle des DC, inscription automatique, attaques ESC1, ESC6 et ESC8 |
 | 06 | [vCenter en LDAPS](/fr/hyperviseur/VDI/06-vcenter-ldaps) | Source d'identité AD en LDAPS, épinglage du certificat, autorisations globales, pourquoi l'ESXi n'est pas joint au domaine |
-| 07 | [Sécuriser le vCenter et l'AD](/fr/hyperviseur/VDI/httpsvcenter) | Certificat LAB-ROOT-CA pour le vCenter, SSO, VAMI, mode de verrouillage de l'ESXi, signature LDAP, TLS, Protected Users, LAPS |
+| 07 | [Sécuriser le vCenter et l'AD](/fr/hyperviseur/VDI/07-securiser-vcenter-ad) | Certificat LAB-ROOT-CA pour le vCenter, SSO, VAMI, mode de verrouillage de l'ESXi, signature LDAP, TLS, Protected Users, LAPS |
 | 08 | [Préparer l'infrastructure pour Horizon](/fr/hyperviseur/VDI/08-preparation-horizon) | Serveur Horizon, modèle LAB-HorizonServer, dossiers VDI, pas de vTPM, rôle vCenter Horizon-InstantClone |
 | 09 | [La golden image Windows 11](/fr/hyperviseur/VDI/09-golden-image) | VM sans vTPM, contournement LabConfig, compte local, VMware Tools, Horizon Agent, OSOT, snapshot |
 | 10 | [Installer Horizon](/fr/hyperviseur/VDI/10-installation-horizon) | Connection Server, certificat `vdm`, licence, ajout du vCenter, compte de jonction, réglages de sécurité |
-| 11 | Premier pool et premier bureau | *À venir* |
-| 12 | Administrer Horizon au quotidien | *À venir* |
-| 13 | Profils, applications et cycle de vie de l'image | *À venir* |
-| 14 | Production et aller plus loin | *À venir* |
+| 11 | [Premier pool et premier bureau](/fr/hyperviseur/VDI/11-premier-pool) | Pool de clones instantanés flottant, droits par groupe, VM internes, Horizon Client et Web Client |
+| 12 | [Administrer Horizon au quotidien](/fr/hyperviseur/VDI/12-administrer-horizon) | Console, routine, service d'assistance, sessions et machines, délégation, sauvegarde, GPO des bureaux |
+| 13 | [Profils, applications et cycle de vie de l'image](/fr/hyperviseur/VDI/13-profils-applications-image) | FSLogix, distribution des applications, nouvelle image sur le pool, retour arrière, mise à jour d'Horizon |
+| 14 | [Production et aller plus loin](/fr/hyperviseur/VDI/14-production) | Haute disponibilité, UAG et MFA, plusieurs sites, base d'événements, dimensionnement, récapitulatif sécurité |
 
 ---
 
@@ -74,12 +76,16 @@ dateCreated: 2026-11-11T13:44:14.247Z
 | LAB-ROOT-CA, certificat de DC01, LDAPS | 05 | ✅ |
 | vCenter relié à l'AD en LDAPS, autorisations globales | 06 | ✅ |
 | DNS et NTP de l'ESXi | 03 | ⬜ |
-| Certificat LAB-ROOT-CA du vCenter, durcissement vCenter et AD | 07 | ⬜ |
+| Certificat LAB-ROOT-CA du vCenter | 07 | ✅ |
+| Durcissement du vCenter, de l'ESXi et de l'AD | 07 | ⬜ |
 | Modèle LAB-HorizonServer, dossiers, rôle Horizon-InstantClone | 08 | ✅ |
 | Supprimer NKP-LAB, `GG-HZN-Admins` administrateur local | 08 | ⬜ |
-| Golden image Windows 11 | 09 | ⬜ |
-| Connection Server installé et configuré | 10 | ⬜ |
+| Golden image Windows 11 (Agent 2412, VMXNET3) | 09 | 🟡 OSOT *Finaliser* et snapshot `v1` à confirmer |
+| Connection Server installé, certificat `vdm`, vCenter, comptes, administrateurs | 10 | ✅ |
+| Licence d'évaluation | 10 | ⏳ demandée |
 | Premier pool, premier bureau | 11 | ⬜ |
+| Délégation du support, sauvegarde, GPO des bureaux | 12 | ⬜ |
+| Profils FSLogix, image `v2` | 13 | ⬜ |
 
 ---
 
@@ -96,6 +102,8 @@ dateCreated: 2026-11-11T13:44:14.247Z
 | Signature LDAP, liaison de canal, TLS 1.2, Protected Users, LAPS | Durcissement de l'AD | 07 |
 | Rôle vCenter dédié pour Horizon | Horizon n'est pas administrateur du vCenter | 08 |
 | Certificat Horizon émis par LAB-ROOT-CA, nom tiré de l'AD | Pas d'alerte de certificat, pas d'ESC1 | 08, 10 |
+| Bureaux non persistants, GPO dédiée à `OU=Postes` | Pas de persistance d'un logiciel malveillant, pas de fuite par presse-papiers ou USB | 11, 12 |
+| Profils FSLogix cloisonnés par utilisateur | Personne ne lit le profil d'un autre | 13 |
 
 > **Le compromis du lab :** pas de vTPM dans la golden image (page 08). En production, on le garde.
 
@@ -107,4 +115,5 @@ dateCreated: 2026-11-11T13:44:14.247Z
 |---|---|
 | Renouveler le certificat de DC01 et le réimporter dans le vCenter | **Fin septembre 2027** (expiration le 17/11/2027) |
 | Renouveler le certificat du vCenter | 1 an après son émission (page 07) |
-| Renouveler le certificat Horizon (`vdm`) | 1 an après son émission (page 10) |
+| Renouveler le certificat Horizon (`vdm`) | **Vers le 22/10/2027** (expiration le 22/11/2027, page 10) |
+| Fin de la licence d'évaluation Horizon | Date affichée dans **Licence produit et utilisation** après sa saisie (page 10) |
