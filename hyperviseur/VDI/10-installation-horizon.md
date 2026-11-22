@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-22T17:49:07.068Z
+date: 2026-11-22T18:20:34.661Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -125,13 +125,23 @@ Horizon utilise le certificat dont le **nom convivial** est exactement **`vdm`**
 
 1. **Win + R** > `certlm.msc` > **Personnel > Certificats** > clic droit > **Toutes les tâches > Demander un nouveau certificat…**
 2. **Suivant** > **Stratégie d'inscription Active Directory** > **Suivant**.
-3. ☑ **LAB-HorizonServer** > **Inscription** > **Terminer**.
+3. ☑ **LAB-HorizonServer** (statut **Disponible**) > **Inscription** > **Terminer**.
+
+![certlm : Personnel > Certificats > Toutes les tâches > Demander un nouveau certificat](/vdi/10-09-certlm-demander-certificat.png)
+
+> Le magasin contient déjà des certificats créés par Horizon : **Broker-RESTAuth**, **PCoIP Security Gateway** (`psgsc`) et **PCoIP Security Gateway Controller** (`psgcc`). Ils servent aux composants internes : **n'y touche pas**. Seul le certificat `vdm` nous intéresse.
+
+![Le modèle LAB-HorizonServer disponible](/vdi/10-10-inscription-lab-horizonserver.png)
+
+![Inscription réussie](/vdi/10-11-inscription-reussie.png)
 
 > **Le modèle n'apparaît pas ?** Coche **Afficher tous les modèles** : la raison s'affiche. Le plus souvent, c'est le droit *Inscrire* de HORIZON$ ou la VM non redémarrée : revois l'onglet **Sécurité** du modèle en [page 08, partie 3.1](/fr/hyperviseur/VDI/08-preparation-horizon).
 
 ### 4.2 Les noms conviviaux
 
 Il y a maintenant deux certificats `horizon.lab.lan` :
+
+![Deux certificats Horizon.lab.lan : l'ancien auto-signé (vdm) et le nouveau émis par LAB-ROOT-CA (sans nom convivial)](/vdi/10-12-deux-certificats-horizon.png)
 
 | Certificat | Comment le reconnaître | Action |
 |---|---|---|
