@@ -2,7 +2,7 @@
 title: 10 - Installer et configurer le Connection Server
 description: 
 published: 1
-date: 2026-11-22T18:20:34.661Z
+date: 2026-11-22T18:59:14.196Z
 tags: 
 editor: markdown
 dateCreated: 2026-11-18T13:24:32.958Z
@@ -152,11 +152,25 @@ Sur le nouveau, onglet **Détails** > *Autre nom de l'objet* : `Nom DNS=Horizon.
 
 ### 4.3 Redémarrer le service
 
-`services.msc` > **Omnissa Horizon Connection Server** > **Redémarrer** (les services associés suivent). Attends 1 à 2 minutes.
+`services.msc` > **Omnissa Horizon Connection Server** > **Redémarrer** (les services associés suivent).
+
+**Attends 3 à 5 minutes** avec une VM à 5 Go de RAM. Le port 443 est ouvert en dernier, par la **Passerelle sécurisée Omnissa Horizon** (service `wstunnel`). Tant qu'elle n'a pas fini de démarrer, le navigateur affiche **ERR_CONNECTION_TIMED_OUT** alors que tous les services sont « En cours d'exécution ». Pour savoir si c'est prêt, sur la VM :
+
+```powershell
+netstat -ano | findstr LISTENING | findstr ":443"
+```
+
+Une ligne `0.0.0.0:443 … LISTENING` : c'est prêt.
 
 ### 4.4 Contrôle
 
-Ferme et rouvre le navigateur > `https://horizon.lab.lan/admin` : **cadenas**, certificat délivré par **LAB-ROOT-CA**, aucune alerte.
+Ferme et rouvre le navigateur > `https://horizon.lab.lan/admin` : **cadenas**, certificat délivré par **LAB-ROOT-CA**, aucune alerte. Depuis ton PC, l'alerte ne disparaît qu'une fois LAB-ROOT-CA importée (partie 7).
+
+| Avant : certificat auto-signé | Après : certificat LAB-ROOT-CA |
+|---|---|
+| ![Avant : émis par Horizon.lab.lan, Omnissa Horizon default certificate](/vdi/10-13-certificat-avant-autosigne.png) | ![Après : émis par LAB-ROOT-CA, valide jusqu'au 22/11/2027](/vdi/10-14-certificat-apres-lab-root-ca.png) |
+
+**Avant**, le certificat est émis **par lui-même** (*Omnissa Horizon default certificate*) : aucun navigateur ne peut lui faire confiance. **Après**, il est émis par **LAB-ROOT-CA**, que tout le domaine connaît déjà. Organisation et unité sont vides : le modèle LAB-HorizonServer ne reprend que le nom DNS tiré de l'AD, et c'est tout ce qu'il faut.
 
 > 🔁 **Renouvellement :** ce certificat expire dans **1 an**. Refais 4.1 à 4.3 un mois avant : un seul certificat doit porter le nom `vdm`. Note la date.
 
@@ -320,10 +334,11 @@ Le client Horizon et la première connexion à un bureau sont en page 11.
 | Toujours l'ancien certificat | Nom convivial | Un seul certificat `vdm`, puis redémarre le service |
 | Connexion à la console refusée pour adm-hzn-afaye | Pas dans `GG-HZN-Admins`, ou groupe mal saisi à l'installation | **Paramètres > Administrateurs** avec un autre compte admin, ou vérifie le groupe dans l'AD |
 | Avertissement « base d'événements » | Non configurée | Normal (5.6) |
+| `ERR_CONNECTION_TIMED_OUT` juste après un redémarrage | La passerelle (`wstunnel`) n'a pas fini de démarrer, rien n'écoute encore sur 443 | Attends 3 à 5 minutes, contrôle avec `netstat` (4.3) |
 | Console : « Échec du chargement de la page » | Ouverte par l'IP `192.168.50.13` | Ouvre `https://horizon.lab.lan/admin` (partie 7 pour le PC) |
 | Fin d'installation : « mémoire limitée disponible » | Moins de 10 Go de RAM | Normal dans le lab (partie 3) |
 | Les bureaux ne démarrent pas, alerte de licence | Pas de licence, ou évaluation expirée | Partie 5.1 |
-**Journaux :** `C:\ProgramData\Omnissa\VDM\logs` (anciennes versions : `C:\ProgramData\VMware\VDM\logs`).
+**Journaux :** `C:\ProgramData\Omnissa\Horizon\logs\debug-….txt` (anciennes versions : `C:\ProgramData\VMware\VDM\logs`).
 
 ---
 
